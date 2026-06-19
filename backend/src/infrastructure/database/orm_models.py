@@ -1,226 +1,240 @@
-from typing import List, Optional
 import enum
-from sqlalchemy import String, Integer, Boolean, ForeignKey, Text, Enum, Table, Column
-from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
+from sqlalchemy import Column, Integer, String, Boolean, ForeignKey, BigInteger, Text, Enum as SQLEnum, Table
+from sqlalchemy.orm import declarative_base, relationship
 
+Base = declarative_base()
 
+class EstatusDocente(enum.Enum):
+    ACTIVO = "Activo"
+    INACTIVO = "Inactivo"
+    SABATICO = "Sabático"
+    LICENCIA = "Licencia"
 
-# 0. CONFIGURACIÓN BASE Y ENUMS
+class EstatusMateria(enum.Enum):
+    ACTIVA = "Activa"
+    INACTIVA = "Inactiva"
 
-
-class Base(DeclarativeBase):
-    pass
-
-
-class TurnoEnum(str, enum.Enum):
+class TurnoGrupo(enum.Enum):
     MATUTINO = "Matutino"
     VESPERTINO = "Vespertino"
     MIXTO = "Mixto"
 
-
-class EstatusDocenteEnum(str, enum.Enum):
-    ACTIVO = "Activo"
-    COMISIONADO = "Comisionado"
-    LICENCIA = "Licencia"
-    SABATICO = "Sabático"
-    VACANTE = "Vacante"
-
-
-class EstatusMateriaEnum(str, enum.Enum):
-    VACANTE = "Vacante"
+class EstadoAsignacion(enum.Enum):
+    PENDIENTE = "Pendiente"
     ASIGNADA = "Asignada"
-    EN_COMODIN = "En Comodín"
-
-
-class EstadoAsignacionEnum(str, enum.Enum):
-    NORMAL = "Normal"
-    RESERVADA_SABATICO = "Reservada por sabático"
-    LIBERADA_TEMPORAL = "Liberada temporalmente"
-    RESTITUIDA = "Restituida"
-    COMODIN = "Comodín"
-
-
-
-# 1. TABLA PIVOTE (Relación Muchos a Muchos)
+    SABATICO = "Sabático"
+    
+class TipoPeriodo(enum.Enum):
+    SEMESTRAL = "SEMESTRAL"
+    CUATRIMESTRAL = "CUATRIMESTRAL"
+    MODULAR = "MODULAR"
 
 
 docentes_areas_conocimiento = Table(
-    "docentes_areas_conocimiento",
+    'docentes_areas_conocimiento',
     Base.metadata,
-    Column("docente_id", ForeignKey("docentes.id", ondelete="CASCADE"), primary_key=True),
-    Column("area_conocimiento_id", ForeignKey("areas_conocimiento.id", ondelete="CASCADE"), primary_key=True),
+    Column('docente_id', BigInteger, ForeignKey('docentes.id', ondelete='CASCADE'), primary_key=True),
+    Column('area_conocimiento_id', BigInteger, ForeignKey('areas_conocimiento.id', ondelete='CASCADE'), primary_key=True)
 )
 
 
+class Rol(Base):
+    __tablename__ = 'roles'
 
-# 2. MODELOS DE AUTENTICACIÓN Y SEGURIDAD
+    id = Column(BigInteger, primary_key=True, autoincrement=True)
+    nombre = Column(String(50), nullable=True)
+    clave = Column(String(50), nullable=True)
 
-
-class Role(Base):
-    __tablename__ = "roles"
-
-    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-    nombre: Mapped[str] = mapped_column(String(50), nullable=False)
-    # Clave corta para lógica de permisos: 'admin', 'capturista', etc.
-    clave: Mapped[str] = mapped_column(String(20), unique=True, nullable=False)
-
-    usuarios: Mapped[List["Usuario"]] = relationship(back_populates="rol")
+    # Relaciones
+    usuarios = relationship("Usuario", back_populates="rol")
 
 
 class Usuario(Base):
-    __tablename__ = "usuarios"
+    __tablename__ = 'usuarios'
 
-    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-    email_institucional: Mapped[str] = mapped_column(String(100), unique=True, nullable=False)
-    password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
-    rol_id: Mapped[int] = mapped_column(ForeignKey("roles.id"), nullable=False)
-    activo: Mapped[bool] = mapped_column(Boolean, default=True)
+    id = Column(BigInteger, primary_key=True, autoincrement=True)
+    email_institucional = Column(String(150), unique=True, nullable=False)
+    password_hash = Column(String(255), nullable=False)
+    rol_id = Column(BigInteger, ForeignKey('roles.id'), nullable=False)
+    activo = Column(Boolean, default=True, nullable=False)
 
-    rol: Mapped["Role"] = relationship(back_populates="usuarios")
-    # uselist=False porque un usuario tiene a lo mucho un docente asociado
-    docente: Mapped[Optional["Docente"]] = relationship(back_populates="usuario", uselist=False)
-
-
-
-# 3. MODELOS DE CATÁLOGOS ACADÉMICOS
-
-
-class ProgramaEducativo(Base):
-    __tablename__ = "programas_educativos"
-
-    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-    nombre: Mapped[str] = mapped_column(String(150), nullable=False)
-    clave: Mapped[str] = mapped_column(String(10), unique=True, nullable=False)
-    activo: Mapped[bool] = mapped_column(Boolean, default=True)
-
-    planes_estudio: Mapped[List["PlanEstudio"]] = relationship(back_populates="programa_educativo")
-
-
-class PlanEstudio(Base):
-    __tablename__ = "plan_estudios"
-
-    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-    nombre: Mapped[str] = mapped_column(String(100), nullable=False)
-    programa_educativo_id: Mapped[int] = mapped_column(ForeignKey("programas_educativos.id"), nullable=False)
-    vigente: Mapped[bool] = mapped_column(Boolean, default=True)
-
-    programa_educativo: Mapped["ProgramaEducativo"] = relationship(back_populates="planes_estudio")
-    materias: Mapped[List["Materia"]] = relationship(back_populates="plan_estudios")
+    # Relaciones
+    rol = relationship("Rol", back_populates="usuarios")
+    docente = relationship("Docente", back_populates="usuario", uselist=False)
 
 
 class CategoriaDocente(Base):
-    __tablename__ = "categorias_docentes"
+    __tablename__ = 'categorias_docentes'
 
-    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-    nombre: Mapped[str] = mapped_column(String(100), nullable=False)
-    siglas: Mapped[str] = mapped_column(String(10), nullable=False)
-    hsm_base: Mapped[int] = mapped_column(Integer, nullable=False)
-    # Menor número = mayor prioridad en la asignación de carga
-    nivel_prioridad: Mapped[int] = mapped_column(Integer, nullable=False)
-    es_comodin: Mapped[bool] = mapped_column(Boolean, default=False)
+    id = Column(BigInteger, primary_key=True, autoincrement=True)
+    nombre = Column(String(100), nullable=False)
+    siglas = Column(String(20), nullable=False)
+    hsm_base = Column(Integer, nullable=False)
+    nivel_prioridad = Column(Integer, nullable=False)
+    es_comodin = Column(Boolean, default=False, nullable=False)
 
-    docentes: Mapped[List["Docente"]] = relationship(back_populates="categoria")
+    # Relaciones
+    docentes = relationship("Docente", back_populates="categoria")
 
 
 class AreaConocimiento(Base):
-    __tablename__ = "areas_conocimiento"
+    __tablename__ = 'areas_conocimiento'
 
-    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-    nombre: Mapped[str] = mapped_column(String(100), nullable=False)
-    # CORRECCIÓN: faltaba el paréntesis de cierre en mapped_column
-    descripcion: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    id = Column(BigInteger, primary_key=True, autoincrement=True)
+    nombre = Column(String(150), nullable=False)
+    descripcion = Column(Text, nullable=True)
 
-    materias: Mapped[List["Materia"]] = relationship(back_populates="area_conocimiento")
-    docentes: Mapped[List["Docente"]] = relationship(
-        secondary=docentes_areas_conocimiento,
-        back_populates="areas_conocimiento",
-    )
+    # Relaciones
+    materias = relationship("Materia", back_populates="area_conocimiento")
+    docentes = relationship("Docente", secondary=docentes_areas_conocimiento, back_populates="areas_conocimiento")
 
 
+class ProgramaEducativo(Base):
+    __tablename__ = 'programas_educativos'
 
-# 4. ENTIDADES PRINCIPALES Y TRANSACCIONALES
+    id = Column(BigInteger, primary_key=True, autoincrement=True)
+    nombre = Column(String(150), nullable=False)
+    clave = Column(String(50), nullable=False)
+    activo = Column(Boolean, default=True, nullable=False)
+
+    # Relaciones
+    planes_estudio = relationship("PlanEstudios", back_populates="programa_educativo")
+
+
+class PlanEstudios(Base):
+    __tablename__ = 'plan_estudios'
+
+    id = Column(BigInteger, primary_key=True, autoincrement=True)
+    nombre = Column(String(150), nullable=False)
+    programa_educativo_id = Column(BigInteger, ForeignKey('programas_educativos.id'), nullable=False)
+    vigente = Column(Boolean, default=True, nullable=False)
+    tipo_periodo = Column(SQLEnum(TipoPeriodo), default=TipoPeriodo.SEMESTRAL, nullable=False)
+
+    # Relaciones
+    programa_educativo = relationship("ProgramaEducativo", back_populates="planes_estudio")
+    materias = relationship("Materia", back_populates="plan_estudio")
+    grupos_abiertos = relationship("GrupoAbierto", back_populates="plan_estudio")
 
 
 class CicloEscolar(Base):
     __tablename__ = "ciclos_escolares"
 
-    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-    nombre: Mapped[str] = mapped_column(String(50), nullable=False)  # ej: 'Agosto - Diciembre 2026'
-    activo: Mapped[bool] = mapped_column(Boolean, default=False)
+    # 1. CAMBIO: De Integer a BigInteger para que coincida con tus demás tablas
+    id = Column(BigInteger, primary_key=True, autoincrement=True)
+    nombre = Column(String(100), nullable=False)
+    mes_inicio = Column(Integer, nullable=False) # 1 al 12
+    mes_final = Column(Integer, nullable=False)  # 1 al 12
+    anio = Column(Integer, nullable=False)       # Ej. 2026
+    
+    activo = Column(Boolean, default=False)
 
-    asignaciones: Mapped[List["AsignacionCarga"]] = relationship(back_populates="ciclo_escolar")
-
+    # Relaciones
+    grupos_abiertos = relationship("GrupoAbierto", back_populates="ciclo_escolar")
+    asignaciones_carga = relationship("AsignacionCarga", back_populates="ciclo_escolar")
+    # Agregamos la relación hacia las otras actividades
+    asignaciones_otras_actividades = relationship("AsignacionOtraActividad", back_populates="ciclo_escolar")
 
 class Docente(Base):
-    __tablename__ = "docentes"
+    __tablename__ = 'docentes'
 
-    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-    nombre: Mapped[str] = mapped_column(String(100), nullable=False)
-    apellidos: Mapped[str] = mapped_column(String(100), nullable=False)
-    plaza: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
-    categoria_id: Mapped[int] = mapped_column(ForeignKey("categorias_docentes.id"), nullable=False)
-    # Permite sobreescribir las HSM base de la categoría para casos especiales
-    hsm_personalizadas: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
-    estatus: Mapped[EstatusDocenteEnum] = mapped_column(
-        Enum(EstatusDocenteEnum), default=EstatusDocenteEnum.ACTIVO
-    )
-    usuario_id: Mapped[Optional[int]] = mapped_column(ForeignKey("usuarios.id"), unique=True, nullable=True)
+    id = Column(BigInteger, primary_key=True, autoincrement=True)
+    nombre = Column(String(100), nullable=False)
+    apellidos = Column(String(100), nullable=False)
+    plaza = Column(String(50), nullable=False)
+    categoria_id = Column(BigInteger, ForeignKey('categorias_docentes.id'), nullable=False)
+    hsm_personalizadas = Column(Integer, nullable=True)
+    estatus = Column(SQLEnum(EstatusDocente), nullable=False)
+    usuario_id = Column(BigInteger, ForeignKey('usuarios.id'), unique=True, nullable=True)
 
-    categoria: Mapped["CategoriaDocente"] = relationship(back_populates="docentes")
-    usuario: Mapped[Optional["Usuario"]] = relationship(back_populates="docente", uselist=False)
-    areas_conocimiento: Mapped[List["AreaConocimiento"]] = relationship(
-        secondary=docentes_areas_conocimiento,
-        back_populates="docentes",
-    )
-    asignaciones_titular: Mapped[List["AsignacionCarga"]] = relationship(
-        foreign_keys="[AsignacionCarga.docente_titular_id]",
-        back_populates="docente_titular",
-    )
-    asignaciones_temporal: Mapped[List["AsignacionCarga"]] = relationship(
-        foreign_keys="[AsignacionCarga.docente_temporal_id]",
-        back_populates="docente_temporal",
-    )
+    # Relaciones
+    usuario = relationship("Usuario", back_populates="docente")
+    categoria = relationship("CategoriaDocente", back_populates="docentes")
+    areas_conocimiento = relationship("AreaConocimiento", secondary=docentes_areas_conocimiento, back_populates="docentes")
+    asignaciones_titular = relationship("AsignacionCarga", foreign_keys='AsignacionCarga.docente_titular_id', back_populates="docente_titular")
+    asignaciones_temporal = relationship("AsignacionCarga", foreign_keys='AsignacionCarga.docente_temporal_id', back_populates="docente_temporal")
+    otras_actividades = relationship("AsignacionOtraActividad", back_populates="docente")
 
 
 class Materia(Base):
-    __tablename__ = "materias"
+    __tablename__ = 'materias'
 
-    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-    nombre_asignatura: Mapped[str] = mapped_column(String(150), nullable=False)
-    plan_estudios_id: Mapped[int] = mapped_column(ForeignKey("plan_estudios.id"), nullable=False)
-    semestre: Mapped[int] = mapped_column(Integer, nullable=False)
-    grupo: Mapped[str] = mapped_column(String(5), nullable=False)
-    turno: Mapped[TurnoEnum] = mapped_column(Enum(TurnoEnum), nullable=False)
-    hsm: Mapped[int] = mapped_column(Integer, nullable=False)
-    area_conocimiento_id: Mapped[int] = mapped_column(ForeignKey("areas_conocimiento.id"), nullable=False)
-    estatus: Mapped[EstatusMateriaEnum] = mapped_column(
-        Enum(EstatusMateriaEnum), default=EstatusMateriaEnum.VACANTE
-    )
+    id = Column(BigInteger, primary_key=True, autoincrement=True)
+    nombre_asignatura = Column(String(150), nullable=False)
+    plan_estudios_id = Column(BigInteger, ForeignKey('plan_estudios.id'), nullable=False)
+    numero_periodo = Column(Integer, nullable=False)
+    hsm = Column(Integer, nullable=False)
+    area_conocimiento_id = Column(BigInteger, ForeignKey('areas_conocimiento.id'), nullable=False)
+    estatus = Column(SQLEnum(EstatusMateria), default=EstatusMateria.ACTIVA, nullable=False)
 
-    plan_estudios: Mapped["PlanEstudio"] = relationship(back_populates="materias")
-    area_conocimiento: Mapped["AreaConocimiento"] = relationship(back_populates="materias")
-    asignaciones: Mapped[List["AsignacionCarga"]] = relationship(back_populates="materia")
+    # Relaciones
+    plan_estudio = relationship("PlanEstudios", back_populates="materias")
+    area_conocimiento = relationship("AreaConocimiento", back_populates="materias")
+    asignaciones = relationship("AsignacionCarga", back_populates="materia")
 
+
+class GrupoAbierto(Base):
+    __tablename__ = 'grupos_abiertos'
+
+    id = Column(BigInteger, primary_key=True, autoincrement=True)
+    ciclo_escolar_id = Column(BigInteger, ForeignKey('ciclos_escolares.id'), nullable=False)
+    plan_estudios_id = Column(BigInteger, ForeignKey('plan_estudios.id'), nullable=False)
+    numero_periodo = Column(Integer, nullable=False)
+    grupo = Column(String(5), nullable=False)
+    turno = Column(SQLEnum(TurnoGrupo), nullable=False)
+
+    # Relaciones
+    ciclo_escolar = relationship("CicloEscolar", back_populates="grupos_abiertos")
+    plan_estudio = relationship("PlanEstudios", back_populates="grupos_abiertos")
+    asignaciones = relationship("AsignacionCarga", back_populates="grupo_asignado")
+
+
+class OtraActividad(Base):
+    __tablename__ = 'otras_actividades'
+
+    id = Column(BigInteger, primary_key=True, autoincrement=True)
+    nombre = Column(String(150), nullable=False)
+    # Regresamos el hsm a Integer (es el valor base del catálogo)
+    hsm = Column(Integer, nullable=False) 
+    
+    # (Quitamos el ciclo y las horas asignadas de aquí)
+
+    # Relaciones
+    asignaciones = relationship("AsignacionOtraActividad", back_populates="actividad")
+
+class AsignacionOtraActividad(Base):
+    __tablename__ = 'asignaciones_otras_actividades'
+
+    id = Column(BigInteger, primary_key=True, autoincrement=True)
+    actividad_id = Column(BigInteger, ForeignKey('otras_actividades.id'), nullable=False)
+    docente_id = Column(BigInteger, ForeignKey('docentes.id'), nullable=False)
+    
+    # 2. CAMBIO: Aquí es donde van los campos de contexto temporal y horas reales
+    ciclo_escolar_id = Column(BigInteger, ForeignKey('ciclos_escolares.id'), nullable=False)
+    horas_asignadas = Column(Integer, nullable=False)
+    
+    observaciones = Column(Text, nullable=True)
+
+    # Relaciones
+    actividad = relationship("OtraActividad", back_populates="asignaciones")
+    docente = relationship("Docente", back_populates="otras_actividades")
+    ciclo_escolar = relationship("CicloEscolar", back_populates="asignaciones_otras_actividades")
 
 class AsignacionCarga(Base):
-    __tablename__ = "asignaciones_carga"
+    __tablename__ = 'asignaciones_carga'
 
-    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-    materia_id: Mapped[int] = mapped_column(ForeignKey("materias.id"), nullable=False)
-    docente_titular_id: Mapped[int] = mapped_column(ForeignKey("docentes.id"), nullable=False)
-    docente_temporal_id: Mapped[Optional[int]] = mapped_column(ForeignKey("docentes.id"), nullable=True)
-    ciclo_escolar_id: Mapped[int] = mapped_column(ForeignKey("ciclos_escolares.id"), nullable=False)
-    estado_asignacion: Mapped[EstadoAsignacionEnum] = mapped_column(
-        Enum(EstadoAsignacionEnum), default=EstadoAsignacionEnum.NORMAL
-    )
+    id = Column(BigInteger, primary_key=True, autoincrement=True)
+    materia_id = Column(BigInteger, ForeignKey('materias.id'), nullable=False)
+    grupo_asignado_id = Column(BigInteger, ForeignKey('grupos_abiertos.id'), nullable=True)
+    docente_titular_id = Column(BigInteger, ForeignKey('docentes.id'), nullable=True)
+    docente_temporal_id = Column(BigInteger, ForeignKey('docentes.id'), nullable=True)
+    ciclo_escolar_id = Column(BigInteger, ForeignKey('ciclos_escolares.id'), nullable=False)
+    estado_asignacion = Column(SQLEnum(EstadoAsignacion), default=EstadoAsignacion.PENDIENTE, nullable=False)
+    motivo_descarga = Column(String(100), nullable=True)
 
-    materia: Mapped["Materia"] = relationship(back_populates="asignaciones")
-    ciclo_escolar: Mapped["CicloEscolar"] = relationship(back_populates="asignaciones")
-    docente_titular: Mapped["Docente"] = relationship(
-        foreign_keys=[docente_titular_id],
-        back_populates="asignaciones_titular",
-    )
-    docente_temporal: Mapped[Optional["Docente"]] = relationship(
-        foreign_keys=[docente_temporal_id],
-        back_populates="asignaciones_temporal",
-    )
+    # Relaciones
+    materia = relationship("Materia", back_populates="asignaciones")
+    grupo_asignado = relationship("GrupoAbierto", back_populates="asignaciones")
+    ciclo_escolar = relationship("CicloEscolar", back_populates="asignaciones_carga")
+    
+    docente_titular = relationship("Docente", foreign_keys=[docente_titular_id], back_populates="asignaciones_titular")
+    docente_temporal = relationship("Docente", foreign_keys=[docente_temporal_id], back_populates="asignaciones_temporal")
