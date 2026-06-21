@@ -24,11 +24,6 @@ def upgrade() -> None:
     op.add_column('ciclos_escolares', sa.Column('mes_inicio', sa.Integer(), nullable=False))
     op.add_column('ciclos_escolares', sa.Column('mes_final', sa.Integer(), nullable=False))
     op.add_column('ciclos_escolares', sa.Column('anio', sa.Integer(), nullable=False))
-    op.alter_column('ciclos_escolares', 'id',
-               existing_type=mysql.BIGINT(),
-               type_=sa.Integer(),
-               existing_nullable=False,
-               autoincrement=True)
     op.alter_column('ciclos_escolares', 'activo',
                existing_type=mysql.TINYINT(display_width=1),
                nullable=True)
@@ -41,11 +36,6 @@ def downgrade() -> None:
     op.alter_column('ciclos_escolares', 'activo',
                existing_type=mysql.TINYINT(display_width=1),
                nullable=False)
-    op.alter_column('ciclos_escolares', 'id',
-               existing_type=sa.Integer(),
-               type_=mysql.BIGINT(),
-               existing_nullable=False,
-               autoincrement=True)
     op.drop_column('ciclos_escolares', 'anio')
     op.drop_column('ciclos_escolares', 'mes_final')
     op.drop_column('ciclos_escolares', 'mes_inicio')

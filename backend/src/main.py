@@ -9,6 +9,7 @@ from src.infrastructure.api.routers import docentes_router
 from src.infrastructure.api.routers import materias_router
 from src.infrastructure.api.routers import planes_estudios_router
 from src.infrastructure.api.routers import programas_router
+from src.infrastructure.api.routers import auth_router
 
 
 app = FastAPI(title="API SIPAD - Carga Académica")
@@ -22,6 +23,7 @@ app.add_middleware(
 )
 
 # Routers (Aquí tenemos que ir poniendo los routers de las distintas entidades de la bd)
+app.include_router(auth_router.router)
 app.include_router(actividades_router.router)
 app.include_router(apertura_router.router)
 app.include_router(areas_router.router)
