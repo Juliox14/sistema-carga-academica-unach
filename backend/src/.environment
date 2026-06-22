@@ -1,0 +1,10 @@
+MONGO_URI=mongodb://localhost:27017
+MONGO_DB=carga_academica
+SERVICE_NAME=sipad-api
+LOG_TO_CONSOLE=true
+LOG_LEVEL=INFO
+
+DB_USER=dev_user
+DB_PASSWORD=dev_password
+DB_NAME=carga_academica
+DB_PORT=3306

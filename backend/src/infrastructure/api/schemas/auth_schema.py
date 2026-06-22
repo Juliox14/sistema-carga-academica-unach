@@ -3,12 +3,12 @@ from typing import Optional
 
 class UsuarioRegistro(BaseModel):
     email_institucional: EmailStr = Field(..., description="Correo institucional único del usuario")
-    password: str = Field(..., min_length=6, description="Contraseña del usuario (mínimo 6 caracteres)")
+    password: str = Field(..., min_length=6, max_length=72, description="Contraseña del usuario (6-72 caracteres)")
     clave_rol: str = Field(default="DOCENTE", description="Clave del rol a asignar (ej: DOCENTE, SECRETARIA_ACADEMICA)")
 
 class UsuarioLogin(BaseModel):
     email_institucional: EmailStr = Field(..., description="Correo institucional del usuario")
-    password: str = Field(..., description="Contraseña en texto plano")
+    password: str = Field(..., max_length=72, description="Contraseña en texto plano (máximo 72 caracteres)")
 
 class Token(BaseModel):
     access_token: str
