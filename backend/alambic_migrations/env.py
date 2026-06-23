@@ -31,12 +31,13 @@ config = context.config
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
+db_route = os.getenv("DB_ROUTE", "localhost") 
 db_user = os.getenv("DB_USER", "dev_user")
 db_password = os.getenv("DB_PASSWORD", "dev_password")
 db_name = os.getenv("DB_NAME", "carga_academica")
 db_port = os.getenv("DB_PORT", "3306")
 
-db_url = f"mysql+pymysql://{db_user}:{db_password}@localhost:{db_port}/{db_name}"
+db_url = f"mysql+pymysql://{db_user}:{db_password}@{db_route}:{db_port}/{db_name}"
 config.set_main_option("sqlalchemy.url", db_url)
 
 target_metadata = Base.metadata

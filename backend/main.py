@@ -7,6 +7,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from pymongo import MongoClient
 from dotenv import load_dotenv
 
+from urllib import parse
+
 from src.infrastructure.api.routers import actividades_router
 from src.infrastructure.api.routers import apertura_router
 from src.infrastructure.api.routers import areas_router
@@ -30,13 +32,20 @@ load_dotenv()
 
 # Logging Initialization
 def _init_logging(app_instance) -> None:
-    mongo_uri = os.getenv("MONGO_URI", "mongodb://localhost:27017")
+    MONGO_ROUTE = os.getenv("MONGO_ROUTE", "localhost")
+    MONGO_USER = os.getenv("MONGO_USER", "admin")
+    MONGO_PASSWORD = os.getenv("MONGO_PASSWORD", "admin")
+    MONGO_PORT = os.getenv("MONGO_PORT", "27017")
+    username = parse.quote_plus(MONGO_USER)
+    password = parse.quote_plus(MONGO_PASSWORD)
+    route    = parse.quote_plus(MONGO_ROUTE)
+    port     = parse.quote_plus(MONGO_PORT)
     mongo_db = os.getenv("MONGO_DB", "carga_academica")
     service_name = os.getenv("SERVICE_NAME", "sipad-api")
     log_to_console = os.getenv("LOG_TO_CONSOLE", "true").lower() == "true"
 
     try:
-        mongo_client = MongoClient(mongo_uri)
+        mongo_client = MongoClient('mongodb://%s:%s@%s:%s' % (username,password,route,port))
         logs_collection = setup_logging_collection(mongo_client, mongo_db)
 
         adapters = []

@@ -10,14 +10,18 @@ import json
 from pathlib import Path
 from dotenv import load_dotenv
 import os
+import urllib.parse
 
 # Cargar variables de entorno
-env_path = Path(".env")
+env_path = Path(".environment")
 if env_path.exists():
     load_dotenv(env_path)
 
 # Configuración de conexión
-MONGO_URI = os.getenv("MONGO_URI", "mongodb://localhost:27017")
+MONGO_ROUTE = os.getenv("MONGO_ROUTE", "localhost")
+MONGO_USER = os.getenv("MONGO_USER", "admin")
+MONGO_PASSWORD = os.getenv("MONGO_PASSWORD", "admin")
+MONGO_PORT = os.getenv("MONGO_PORT", "27017")
 DB_NAME = os.getenv("MONGO_DB", "carga_academica")
 SERVICE_NAME = os.getenv("SERVICE_NAME", "sipad-api")
 COLLECTION_NAME = "logs"
@@ -25,7 +29,11 @@ COLLECTION_NAME = "logs"
 def conectar():
     """Conecta a MongoDB"""
     try:
-        client = MongoClient(MONGO_URI, serverSelectionTimeoutMS=5000)
+        username = urllib.parse.quote_plus(MONGO_USER)
+        password = urllib.parse.quote_plus(MONGO_PASSWORD)
+        route    = urllib.parse.quote_plus(MONGO_ROUTE)
+        port     = urllib.parse.quote_plus(MONGO_PORT)
+        client = MongoClient('mongodb://%s:%s@%s:%s' % (username,password,route,port), serverSelectionTimeoutMS=5000)
         client.admin.command('ping')
         return client[DB_NAME][COLLECTION_NAME]
     except Exception as e:
