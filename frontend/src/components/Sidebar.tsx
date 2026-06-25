@@ -45,17 +45,17 @@ export default function Sidebar() {
   const [collapsed, setCollapsed] = useState(false);
 
   return (
-    <div className={`shrink-0 h-screen sticky top-0 z-20 transition-all duration-300 ease-in-out ${collapsed ? 'w-18' : 'w-70'}`}>
+    <div className={`relative shrink-0 h-screen sticky top-0 z-20 transition-all duration-300 ease-in-out ${collapsed ? 'w-18' : 'w-70'}`}>
+      {/* BUG 1 FIX: Botón FUERA del aside (que tiene overflow-hidden) para que no se recorte */}
+      <button
+        onClick={() => setCollapsed(!collapsed)}
+        className="absolute top-5 -right-2.5 z-50 w-5 h-5 rounded-full flex items-center justify-center bg-[#D4E600] text-[#060F5C] shadow-lg shadow-[#D4E600]/30 hover:scale-110 transition-transform border-2 border-[#060F5C]"
+      >
+        <ChevronRight size={10} strokeWidth={3} className={`transition-transform duration-300 ${collapsed ? 'rotate-180' : ''}`} />
+      </button>
+
       <aside className="relative flex flex-col h-full w-full font-sans select-none overflow-hidden"
         style={{ background: '#0038C3', boxShadow: '4px 0 24px rgba(6,15,92,0.35)' }}>
-
-        {/* BUG 1 FIX: Botón DENTRO del aside, posicionado en el borde derecho del header */}
-        <button
-          onClick={() => setCollapsed(!collapsed)}
-          className="absolute top-5 -right-2.5 z-50 w-5 h-5 rounded-full flex items-center justify-center bg-[#D4E600] text-[#060F5C] shadow-lg shadow-[#D4E600]/30 hover:scale-110 transition-transform border-2 border-[#060F5C]"
-        >
-          <ChevronRight size={10} strokeWidth={3} className={`transition-transform duration-300 ${collapsed ? 'rotate-180' : ''}`} />
-        </button>
 
         <SidebarHeader collapsed={collapsed} />
 
