@@ -1,10 +1,10 @@
 import { useState, useEffect, useRef } from 'react';
 import { X, UserCheck, Loader2 } from 'lucide-react';
-import { FlatInput, FlatSelect } from '../../components/ui/Form';
+import { FlatInput, FlatSelect } from '../../../components/ui/Form';
 import type { SyntheticEvent } from 'react';
-import { docentesService } from '../../services/docentes.service';
-import type { Docente } from '../../types/docentes';
-import type { AreaConocimiento } from '../../types/areas';
+import { docentesService } from '../../../services/docentes.service';
+import type { Docente } from '../../../types/docentes';
+import type { AreaConocimiento } from '../../../types/areas';
 
 interface DocenteFormProps {
   isOpen: boolean;

@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from src.infrastructure.api.routers import actividades_router
 from src.infrastructure.api.routers import apertura_router
 from src.infrastructure.api.routers import areas_router
+from src.infrastructure.api.routers import asignaciones_router
 from src.infrastructure.api.routers import categorias_router
 from src.infrastructure.api.routers import ciclos_router
 from src.infrastructure.api.routers import docentes_router
@@ -25,6 +26,7 @@ app.add_middleware(
 app.include_router(actividades_router.router)
 app.include_router(apertura_router.router)
 app.include_router(areas_router.router)
+app.include_router(asignaciones_router.router)
 app.include_router(categorias_router.router)
 app.include_router(ciclos_router.router)
 app.include_router(docentes_router.router)

@@ -1,4 +1,5 @@
 from sqlalchemy.orm import Session
+from fastapi import HTTPException
 from src.infrastructure.database.orm_models import CicloEscolar
 from src.infrastructure.api.schemas.ciclos_schema import CicloEscolarCreate, CicloEscolarUpdate
 
@@ -21,7 +22,7 @@ def obtener_ciclo_por_id(db: Session, ciclo_id: int):
 def actualizar_ciclo(db: Session, ciclo_id: int, ciclo_data: CicloEscolarUpdate):
     ciclo = db.query(CicloEscolar).filter(CicloEscolar.id == ciclo_id).first()
     if not ciclo:
-        raise ValueError("Ciclo escolar no encontrado")
+        raise HTTPException(status_code=404, detail="Ciclo escolar no encontrado")
     
     ciclo_data_dict = ciclo_data.model_dump(exclude_unset=True)
     
@@ -36,8 +37,15 @@ def actualizar_ciclo(db: Session, ciclo_id: int, ciclo_data: CicloEscolarUpdate)
 def eliminar_ciclo(db: Session, ciclo_id: int):
     ciclo = db.query(CicloEscolar).filter(CicloEscolar.id == ciclo_id).first()
     if not ciclo:
-        raise ValueError("Ciclo escolar no encontrado")
+        raise HTTPException(status_code=404, detail="Ciclo escolar no encontrado")
     
     db.delete(ciclo)
     db.commit()
     return True
+
+def obtener_ciclo_activo(db: Session):
+    ciclo = db.query(CicloEscolar).filter_by(activo=True).first()
+    
+    if not ciclo:
+        raise HTTPException(status_code=400, detail="No hay un ciclo escolar activo.")
+    return ciclo

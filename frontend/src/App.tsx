@@ -4,7 +4,7 @@ import MainLayout from './layouts/MainLayout';
 import ActividadesDashboard from './features/actividades/ActividadesDashboard';
 import AreasDashboard from './features/areasConocimiento/AreasDashboard';
 import AperturaDashboard from './features/apertura/AperturaDashboard';
-import AssignmentDashboard from './pages/AssignmentDashboard';
+import AssignmentDashboard from './features/asignacion/AssignmentDashboard';
 import CategoriasDashboard from './features/categorias/CategoriasDashboard';
 import CiclosDashboard from './features/ciclos/CiclosDashboard';
 import DocentesDashboard from './features/docentes/DocentesDashboard';

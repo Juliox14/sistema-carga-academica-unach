@@ -1,10 +1,10 @@
 import { useState, useEffect, useRef } from 'react';
 import { X, Building2, Loader2 } from 'lucide-react';
-import { FlatInput, FlatSelect } from '../../components/ui/Form';
+import { FlatInput, FlatSelect } from '../../../components/ui/Form';
 import type { SyntheticEvent } from 'react';
 
-import { programasService } from '../../services/programas.service';
-import type { ProgramaEducativo } from '../../types/programas';
+import { programasService } from '../../../services/programas.service';
+import type { ProgramaEducativo } from '../../../types/programas';
 
 interface ProgramaFormProps {
   isOpen: boolean;

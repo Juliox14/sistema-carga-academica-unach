@@ -1,9 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
 import { X, Calendar, Loader2 } from 'lucide-react';
-import { FlatInput, FlatSelect } from '../../components/ui/Form';
+import { FlatInput, FlatSelect } from '../../../components/ui/Form';
 import type { SyntheticEvent } from 'react';
-import type { CicloEscolar } from '../../types/ciclos';
-import { ciclosService } from '../../services/ciclos.service';
+import type { CicloEscolar } from '../../../types/ciclos';
+import { ciclosService } from '../../../services/ciclos.service';
 
 interface CicloFormProps {
   isOpen: boolean;
@@ -75,7 +75,7 @@ export default function CicloFormSlideOver({ isOpen, ciclo, onClose, onSuccess }
       <form
         ref={formRef}
         onSubmit={handleSubmit}
-        className={`fixed top-0 right-0 h-full w-[400px] bg-white shadow-2xl z-50 transform transition-transform duration-300 ease-in-out flex flex-col ${isOpen ? 'translate-x-0' : 'translate-x-full'}`}
+        className={`fixed top-0 right-0 h-full w-100 bg-white shadow-2xl z-50 transform transition-transform duration-300 ease-in-out flex flex-col ${isOpen ? 'translate-x-0' : 'translate-x-full'}`}
       >
         <div className="flex justify-between items-center p-6 border-b border-gray-200 bg-gray-50">
           <h3 className="text-lg font-bold text-[#002d55] flex items-center gap-2">

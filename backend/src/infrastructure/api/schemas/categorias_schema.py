@@ -6,7 +6,6 @@ class CategoriaDocenteBase(BaseModel):
     siglas: str
     hsm_base: int
     nivel_prioridad: int
-    es_comodin: bool = False
 
 class CategoriaDocenteCreate(CategoriaDocenteBase):
     pass

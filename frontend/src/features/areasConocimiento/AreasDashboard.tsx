@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Plus, Pencil, Trash2, Search, Loader2 } from 'lucide-react';
 import { ConfirmAlert } from '../../components/ui/ConfirmAlert';
 
-import AreaFormSlideOver from '../../components/areasConocimiento/AreaFormSlideOver';
+import AreaFormSlideOver from './components/AreaFormSlideOver';
 import { areasService } from '../../services/areas.service';
 
 import type { AreaConocimiento } from '../../types/areas';
