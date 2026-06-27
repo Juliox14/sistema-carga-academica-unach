@@ -1,0 +1,193 @@
+import { useEffect, useState, useRef, useMemo } from 'react';
+import { Search, ChevronDown, ChevronUp } from 'lucide-react';
+import { asignacionesService } from '../../../services/asignaciones.service';
+import type { PlanEstudio, CategoriaDocente, DocenteFiltrado } from '../../../types/asignaciones';
+import { useAsignacionStore } from '../store/useAsignacionStore';
+
+export default function AssignmentHeader() {
+  const { setDocente, setPlanEstudio, setActividadesDisponibles } = useAsignacionStore();
+
+  const [planes, setPlanes] = useState<PlanEstudio[]>([]);
+  const [categorias, setCategorias] = useState<CategoriaDocente[]>([]);
+  const [docentes, setDocentes] = useState<DocenteFiltrado[]>([]);
+
+  const [selectedPlan, setSelectedPlan] = useState<number | ''>('');
+  const [selectedCategoria, setSelectedCategoria] = useState<number | ''>('');
+  const [selectedDocente, setSelectedDocente] = useState<number | ''>('');
+
+  // Estados para el Custom Select tipo SIPAD
+  const [searchQuery, setSearchQuery] = useState<string>('');
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // 1. Cargar los catálogos base al montar el componente
+  useEffect(() => {
+    const cargarCatalogos = async () => {
+      try {
+        const data = await asignacionesService.obtenerCatalogosBase();
+        setPlanes(data.planes_estudio || []);
+        setCategorias(data.categorias_docentes || []);
+        setActividadesDisponibles(data.actividades || []);
+      } catch (error) {
+        console.error('Error al cargar catálogos base:', error);
+      }
+    };
+    cargarCatalogos();
+  }, [setActividadesDisponibles]);
+
+  // 2. Traer docentes del backend SOLO cuando cambia la categoría
+  useEffect(() => {
+    const cargarDocentes = async () => {
+      try {
+        // Al backend solo le pedimos que filtre por categoría (PTC, PMT, etc.)
+        const data = await asignacionesService.obtenerDocentesFiltrados(selectedCategoria, "");
+        setDocentes(data || []);
+
+        if (selectedDocente !== '' && !data.some(d => d.id === selectedDocente)) {
+          setSelectedDocente('');
+        }
+      } catch (error) {
+        console.error('Error al cargar docentes por categoría:', error);
+      }
+    };
+    cargarDocentes();
+  }, [selectedCategoria]);
+
+  // 3. Cierra el menú desplegable si hacen clic fuera de él
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  // 4. Filtrado local ultra-rápido por texto
+  const filteredDocentes = useMemo(() => {
+    if (!searchQuery) return docentes;
+    return docentes.filter(d => 
+      d.nombre_completo.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+  }, [docentes, searchQuery]);
+
+  // Obtenemos el objeto completo del docente seleccionado para mostrar su nombre en el botón
+  const docenteSeleccionadoObj = docentes.find(d => d.id === selectedDocente);
+
+  return (
+    <section className="bg-white p-5 border border-gray-200 flex flex-wrap gap-6 items-center justify-between shadow-sm">
+      <div className="flex items-center gap-6">
+
+        {/* Selector de Plan de Estudios */}
+        <div className="relative group">
+          <select
+            value={selectedPlan}
+            onChange={(e) => {
+              const val = e.target.value;
+              setSelectedPlan(val === '' ? '' : Number(val));
+              if (val !== '') setPlanEstudio(Number(val));
+            }}
+            className="border-b-2 border-gray-300 bg-transparent py-1 pr-8 focus:outline-none focus:border-[#002d55] text-sm text-gray-700 font-medium cursor-pointer appearance-none min-w-[150px]"
+          >
+            <option value="" disabled>Seleccione un Plan...</option>
+            {planes.map((p) => (
+              <option key={p.id} value={p.id}>{p.nombre}</option>
+            ))}
+          </select>
+          <ChevronDown size={14} className="absolute right-0 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+        </div>
+
+        {/* Filtros de Categoría */}
+        <div className="flex flex-wrap gap-5 text-sm border-l border-gray-300 pl-6 text-gray-600">
+          <label className="flex items-center gap-1.5 cursor-pointer hover:text-[#002d55] transition-colors">
+            <input
+              type="radio"
+              name="categoria_docente"
+              checked={selectedCategoria === ''}
+              onChange={() => setSelectedCategoria('')}
+              className="accent-[#002d55]"
+            /> Todos
+          </label>
+
+          {categorias.map((cat) => (
+            <label key={cat.id} className="flex items-center gap-1.5 cursor-pointer hover:text-[#002d55] transition-colors" title={cat.nombre}>
+              <input
+                type="radio"
+                name="categoria_docente"
+                checked={selectedCategoria === cat.id}
+                onChange={() => setSelectedCategoria(cat.id)}
+                className="accent-[#002d55]"
+              /> {cat.siglas}
+            </label>
+          ))}
+        </div>
+      </div>
+
+      {/* --- CUSTOM SELECT TIPO SIPAD --- */}
+      <div ref={dropdownRef} className="grow max-w-md relative">
+        
+        {/* Botón que abre el menú (Se ve como un select) */}
+        <div 
+          onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+          className="w-full border-b-2 border-[#002d55] px-3 py-2 text-sm font-semibold text-[#002d55] bg-teal-50/50 flex justify-between items-center cursor-pointer hover:bg-teal-50 transition-colors"
+        >
+          <span>
+            {docenteSeleccionadoObj 
+              ? `${docenteSeleccionadoObj.nombre_completo}` 
+              : 'Seleccione a un docente'}
+          </span>
+          {isDropdownOpen ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+        </div>
+
+        {/* Menú Desplegable con Input Integrado */}
+        {isDropdownOpen && (
+          <div className="absolute top-full left-0 w-full mt-1 bg-white border border-gray-200 shadow-xl z-50 rounded-b-md overflow-hidden">
+            
+            {/* Input de Búsqueda */}
+            <div className="p-2 border-b border-gray-200 bg-gray-50">
+              <div className="relative">
+                <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-blue-500" />
+                <input
+                  type="text"
+                  autoFocus // Hace focus automáticamente al abrir el menú
+                  placeholder="Buscar docente..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full pl-8 pr-3 py-1.5 text-sm border border-blue-400 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white"
+                />
+              </div>
+            </div>
+
+            {/* Lista de Resultados Filtrados */}
+            <ul className="max-h-60 overflow-y-auto">
+              {filteredDocentes.length === 0 ? (
+                <li className="px-4 py-3 text-sm text-gray-500 text-center">No se encontraron resultados</li>
+              ) : (
+                filteredDocentes.map((docente) => (
+                  <li
+                    key={docente.id}
+                    onClick={() => {
+                      setSelectedDocente(docente.id);
+                      setDocente(docente.id); // Dispara Zustand
+                      setIsDropdownOpen(false); // Cierra el menú
+                      setSearchQuery(''); // Limpia la búsqueda para la próxima vez
+                    }}
+                    className={`px-4 py-2 text-sm cursor-pointer transition-colors ${
+                      selectedDocente === docente.id
+                        ? 'bg-[#007bff] text-white font-medium' // Azul tipo SIPAD
+                        : 'text-gray-700 hover:bg-[#007bff] hover:text-white'
+                    }`}
+                  >
+                    {docente.nombre_completo}
+                  </li>
+                ))
+              )}
+            </ul>
+          </div>
+        )}
+      </div>
+
+    </section>
+  );
+}

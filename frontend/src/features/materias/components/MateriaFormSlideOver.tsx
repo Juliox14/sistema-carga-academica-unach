@@ -1,10 +1,10 @@
 // src/features/materias/MateriaFormSlideOver.tsx
 import { useState, useEffect, useRef } from 'react';
 import { X, Library, Loader2 } from 'lucide-react';
-import { FlatInput, FlatSelect } from '../ui/Form';
+import { FlatInput, FlatSelect } from '../../../components/ui/Form';
 import type { SyntheticEvent } from 'react';
-import { materiasService } from '../../services/materias.service';
-import type { Materia } from '../../types/materias';
+import { materiasService } from '../../../services/materias.service';
+import type { Materia } from '../../../types/materias';
 
 interface MateriaFormProps {
   isOpen: boolean;
@@ -31,11 +31,11 @@ export default function MateriaFormSlideOver({ isOpen, materia, planesOptions, o
     
     // Convertimos los campos numéricos a Number() para evitar errores en FastAPI
     const datos = {
-      clave: formData.get('clave') as string,
-      nombre: formData.get('nombre') as string,
-      semestre: Number(formData.get('semestre')),
+      nombre_asignatura: formData.get('nombre_asignatura') as string,
+      numero_periodo: Number(formData.get('numero_periodo')),
       hsm: Number(formData.get('hsm')),
       plan_estudios_id: Number(formData.get('plan_estudios_id')),
+      area_conocimiento_id: Number(formData.get('area_conocimiento_id')),
     };
 
     try {
@@ -82,18 +82,10 @@ export default function MateriaFormSlideOver({ isOpen, materia, planesOptions, o
             
             <div className="flex gap-4">
               <FlatInput 
-                name="clave" 
-                label="Clave" 
-                defaultValue={materia?.clave} 
-                placeholder="Ej. MAT-101" 
-                className="uppercase w-1/3" 
-                required 
-              />
-              <FlatInput 
-                name="nombre" 
-                label="Nombre de la Unidad de Aprendizaje" 
-                defaultValue={materia?.nombre} 
-                placeholder="Ej. INGENIERÍA DE SOFTWARE" 
+                name="nombre_asignatura" 
+                label="Nombre de la Materia" 
+                defaultValue={materia?.nombre_asignatura} 
+                placeholder="Ej. Matemáticas Discretas" 
                 className="uppercase w-2/3" 
                 required 
               />
@@ -101,12 +93,12 @@ export default function MateriaFormSlideOver({ isOpen, materia, planesOptions, o
 
             <div className="flex gap-4">
               <FlatInput 
-                name="semestre" 
-                label="Semestre" 
+                name="numero_periodo" 
+                label="Periodo" 
                 type="number"
                 min="1"
                 max="10"
-                defaultValue={materia ? String(materia.semestre) : ''} 
+                defaultValue={materia ? String(materia.numero_periodo) : ''} 
                 required 
               />
               <FlatInput 

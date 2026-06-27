@@ -1,9 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
 import { X, Briefcase, Loader2 } from 'lucide-react';
-import { FlatInput, FlatSelect } from '../../components/ui/Form';
+import { FlatInput, FlatSelect } from '../../../components/ui/Form';
 import type { SyntheticEvent } from 'react';
-import type { CategoriaDocente } from '../../types/categorias';
-import { categoriasService } from '../../services/categorias.service';
+import type { CategoriaDocente } from '../../../types/categorias';
+import { categoriasService } from '../../../services/categorias.service';
 
 interface CategoriaFormProps {
   isOpen: boolean;

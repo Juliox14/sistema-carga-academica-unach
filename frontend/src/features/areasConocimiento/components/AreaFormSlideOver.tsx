@@ -1,23 +1,23 @@
+// src/features/areas/AreaFormSlideOver.tsx
 import { useState, useEffect, useRef } from 'react';
-import { X, BookOpen, Loader2 } from 'lucide-react';
-import { FlatInput, FlatSelect } from '../../components/ui/Form';
+import { X, Tags, Loader2 } from 'lucide-react';
+import { FlatInput } from '../../../components/ui/Form';
 import type { SyntheticEvent } from 'react';
-import { planesEstudioService } from '../../services/planesEstudio.service';
-import type { PlanEstudios } from '../../types/planesEstudio';
+import { areasService } from '../../../services/areas.service';
+import type { AreaConocimiento } from '../../../types/areas';
 
-interface PlanFormProps {
+interface AreaFormProps {
   isOpen: boolean;
-  plan: PlanEstudios | null;
-  programasOptions: { value: string; label: string }[];
+  area: AreaConocimiento | null;
   onClose: () => void;
   onSuccess: () => void;
 }
 
-export default function PlanFormSlideOver({ isOpen, plan, programasOptions, onClose, onSuccess }: PlanFormProps) {
+export default function AreaFormSlideOver({ isOpen, area, onClose, onSuccess }: AreaFormProps) {
   const [isSaving, setIsSaving] = useState(false);
-
   const formRef = useRef<HTMLFormElement>(null);
 
+  // Limpiar el formulario al cerrarse
   useEffect(() => {
     if (!isOpen && formRef.current) {
       formRef.current.reset();
@@ -30,22 +30,21 @@ export default function PlanFormSlideOver({ isOpen, plan, programasOptions, onCl
     
     const datos = {
       nombre: formData.get('nombre') as string,
-      programa_educativo_id: Number(formData.get('programa_educativo_id')),
-      vigente: formData.get('vigente') === 'true',
+      descripcion: formData.get('descripcion') as string,
     };
 
     try {
       setIsSaving(true);
-      if (plan?.id) {
-        await planesEstudioService.actualizar(plan.id, datos);
+      if (area?.id) {
+        await areasService.actualizar(area.id, datos);
       } else {
-        await planesEstudioService.crear(datos);
+        await areasService.crear(datos);
       }
       onSuccess();
       onClose();
     } catch (error) {
       console.error("Error al guardar:", error);
-      alert("No se pudo guardar el plan de estudios.");
+      alert("No se pudo guardar el área de conocimiento.");
     } finally {
       setIsSaving(false);
     }
@@ -61,34 +60,32 @@ export default function PlanFormSlideOver({ isOpen, plan, programasOptions, onCl
       >
         <div className="flex justify-between items-center p-6 border-b border-gray-200 bg-gray-50">
           <h3 className="text-lg font-bold text-[#002d55] flex items-center gap-2">
-            <BookOpen size={20} />
-            {plan ? 'Editar Plan' : 'Registrar Plan'}
+            <Tags size={20} />
+            {area ? 'Editar Área' : 'Registrar Área'}
           </h3>
           <button type="button" onClick={onClose} className="text-gray-400 hover:text-gray-800 cursor-pointer"><X size={20} /></button>
         </div>
         
         <div className="p-6 flex-1 overflow-y-auto space-y-5">
-          <div key={plan?.id || 'nuevo'} className="space-y-5">
-            <FlatSelect 
-              name="programa_educativo_id" 
-              label="Programa Educativo (Padre)" 
-              defaultValue={plan ? String(plan.programa_educativo_id) : ''} 
-              options={programasOptions} 
-            />
+          <div key={area?.id || 'nuevo'} className="space-y-5">
             <FlatInput 
               name="nombre" 
-              label="Identificador / Nombre del Plan" 
-              defaultValue={plan?.nombre} 
-              placeholder="Ej. PLAN 2026" 
+              label="Nombre del Área" 
+              defaultValue={area?.nombre} 
+              placeholder="Ej. CIENCIAS BÁSICAS" 
               className="uppercase" 
               required 
             />
-            <FlatSelect 
-              name="vigente" 
-              label="Estatus Académico" 
-              defaultValue={plan ? (plan.vigente ? 'true' : 'false') : 'true'} 
-              options={[{ value: 'true', label: 'Vigente (Asigna Carga)' }, { value: 'false', label: 'En Liquidación' }]} 
-            />
+            {/* Si no tienes un componente FlatTextArea, puedes usar un FlatInput o un textarea tradicional */}
+            <div className="flex flex-col gap-1">
+              <label className="text-xs font-semibold text-gray-500 uppercase">Descripción (Opcional)</label>
+              <textarea 
+                name="descripcion" 
+                defaultValue={area?.descripcion} 
+                placeholder="Breve descripción de los temas que abarca..." 
+                className="w-full border-b-2 border-gray-200 bg-gray-50 px-3 py-2 text-sm focus:outline-none focus:border-[#002d55] focus:bg-white transition-colors resize-none h-24"
+              />
+            </div>
           </div>
         </div>
         
@@ -96,7 +93,7 @@ export default function PlanFormSlideOver({ isOpen, plan, programasOptions, onCl
           <button type="button" onClick={onClose} className="px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-800 cursor-pointer">Cancelar</button>
           <button type="submit" disabled={isSaving} className="px-6 py-2 bg-[#002d55] text-white text-sm font-medium rounded-sm hover:bg-[#001f3b] shadow-sm flex items-center gap-2 cursor-pointer disabled:opacity-70">
             {isSaving && <Loader2 size={16} className="animate-spin" />}
-            {isSaving ? 'Guardando...' : 'Guardar Plan'}
+            {isSaving ? 'Guardando...' : 'Guardar Área'}
           </button>
         </div>
       </form>

@@ -9,7 +9,7 @@ import type { ProgramaEducativo } from '../../types/programas';
 
 import { ConfirmAlert } from '../../components/ui/ConfirmAlert';
 
-import PlanFormSlideOver from '../../components/planesEstudio/PlanesFormSlideOver';
+import PlanFormSlideOver from './components/PlanesFormSlideOver';
 
 export default function PlanesDashboard() {
   const [planes, setPlanes] = useState<PlanEstudios[]>([]);

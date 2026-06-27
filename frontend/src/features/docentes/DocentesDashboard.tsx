@@ -10,7 +10,7 @@ import { docentesService } from '../../services/docentes.service';
 import { categoriasService } from '../../services/categorias.service';
 import { areasService } from '../../services/areas.service';
 
-import DocenteFormSlideOver from '../../components/docentes/DocentesFormSlideOver';
+import DocenteFormSlideOver from './components/DocentesFormSlideOver';
 
 
 export default function DocentesDashboard({ userRole = 'SECRETARIA_ACADEMICA' }) {

@@ -2,7 +2,7 @@ from pydantic import BaseModel, ConfigDict
 from typing import Optional
 
 class MateriaBase(BaseModel):
-    nombre: str
+    nombre_asignatura: str
     plan_estudios_id: int
     numero_periodo: int
     hsm: int
@@ -13,7 +13,7 @@ class MateriaCreate(MateriaBase):
     pass
 
 class MateriaUpdate(MateriaBase):
-    nombre: Optional[str] = None
+    nombre_asignatura: Optional[str] = None
     plan_estudios_id: Optional[int] = None
     numero_periodo: Optional[int] = None
     hsm: Optional[int] = None

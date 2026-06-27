@@ -6,6 +6,10 @@ export const docentesService = {
     const response = await api.get<Docente[]>('/docentes/');
     return response.data;
   },
+  obtenerPorId: async (id: number) => {
+    const response = await api.get<Docente>(`/docentes/${id}`);
+    return response.data;
+  },
   crear: async (docente: Omit<Docente, 'id'>) => {
     const response = await api.post<Docente>('/docentes/', docente);
     return response.data;
