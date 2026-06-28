@@ -2,23 +2,27 @@ import { useState } from 'react';
 import { X, ExternalLink, AlertTriangle, Inbox, Lock } from 'lucide-react';
 import { useAsignacionStore } from '../store/useAsignacionStore';
 import { Droppable } from '@hello-pangea/dnd';
+import { useConfigStore } from '../../configuracion/store/useConfigStore';
 
 export default function AssignedContent() {
-  const { 
-    activeTab, 
-    cargaAsignada, 
-    descargas, 
-    otrasActividades, 
+  const {
+    activeTab,
+    cargaAsignada,
+    descargas,
+    otrasActividades,
     desvincularMateria,
     removerDescarga,
     eliminarOtraActividad,
     asignarDescarga,
-    docenteSeleccionadoId 
+    docenteSeleccionadoId
   } = useAsignacionStore();
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [asignacionALiberar, setAsignacionALiberar] = useState<number | null>(null);
   const [motivoDescarga, setMotivoDescarga] = useState('');
+
+  const { configs } = useConfigStore();
+  const motivoObligatorio = configs.DESCARGA_MOTIVO_OBLIGATORIO;
 
   if (!docenteSeleccionadoId) {
     return (
@@ -47,10 +51,16 @@ export default function AssignedContent() {
   };
 
   const handleConfirmarDescarga = async () => {
-    if (asignacionALiberar && motivoDescarga.trim() !== '') {
-      await asignarDescarga(asignacionALiberar, motivoDescarga);
-      handleCloseModal();
+    if (!asignacionALiberar) return;
+
+    if (configs.DESCARGA_MOTIVO_OBLIGATORIO && motivoDescarga.trim() === '') {
+      return; 
     }
+
+    const motivoFinal = motivoDescarga.trim() !== '' ? motivoDescarga.trim() : 'Sin motivo especificado';
+
+    await asignarDescarga(asignacionALiberar, motivoFinal);
+    handleCloseModal();
   };
 
   return (
@@ -66,7 +76,7 @@ export default function AssignedContent() {
         {activeTab === 'carga' && (
           <Droppable droppableId="tablero-carga" type="materia">
             {(provided, snapshot) => (
-              <div 
+              <div
                 ref={provided.innerRef}
                 {...provided.droppableProps}
                 className={`flex-1 flex flex-col transition-colors ${snapshot.isDraggingOver ? 'bg-blue-50/50' : ''}`}
@@ -90,14 +100,14 @@ export default function AssignedContent() {
                         <td className="py-3 px-2 text-gray-600 text-center font-bold">{m.grupo}</td>
                         <td className="py-3 px-2 text-gray-600 text-center font-bold">{m.hsm}</td>
                         <td className="py-3 px-4 flex justify-end gap-2">
-                          <button 
-                            onClick={() => handleOpenModal(m.asignacion_id)} 
+                          <button
+                            onClick={() => handleOpenModal(m.asignacion_id)}
                             className="text-xs text-purple-600 border border-purple-200 bg-purple-50 hover:bg-purple-100 px-2 py-1 rounded flex items-center gap-1.5 transition-colors cursor-pointer"
                           >
                             <ExternalLink size={14} /> Liberar
                           </button>
-                          <button 
-                            onClick={() => desvincularMateria(m.asignacion_id)} 
+                          <button
+                            onClick={() => desvincularMateria(m.asignacion_id)}
                             className="text-gray-400 hover:text-red-500 p-1 cursor-pointer"
                             title="Desvincular materia"
                           >
@@ -108,7 +118,7 @@ export default function AssignedContent() {
                     ))}
                   </tbody>
                 </table>
-                
+
                 {cargaAsignada.length === 0 && (
                   <div className={`flex-1 m-4 border-2 border-dashed rounded-lg flex flex-col items-center justify-center min-h-50 transition-colors ${snapshot.isDraggingOver ? 'border-blue-400 bg-blue-100/50 text-blue-600' : 'border-blue-200 text-blue-400 bg-blue-50/30'}`}>
                     <Inbox size={24} className="mb-2 opacity-50" />
@@ -152,9 +162,9 @@ export default function AssignedContent() {
                     )}
                   </td>
                   <td className="py-3 px-4 text-right">
-                    <button 
+                    <button
                       onClick={() => removerDescarga(d.asignacion_id)}
-                      className="text-gray-400 hover:text-red-500 cursor-pointer p-1 transition-colors" 
+                      className="text-gray-400 hover:text-red-500 cursor-pointer p-1 transition-colors"
                       title="Revertir descarga"
                     >
                       <X size={18} />
@@ -170,7 +180,7 @@ export default function AssignedContent() {
         {activeTab === 'otras' && (
           <Droppable droppableId="tablero-otras" type="actividad">
             {(provided, snapshot) => (
-              <div 
+              <div
                 ref={provided.innerRef}
                 {...provided.droppableProps}
                 className={`flex-1 flex flex-col transition-colors ${snapshot.isDraggingOver ? 'bg-teal-50/50' : ''}`}
@@ -189,9 +199,9 @@ export default function AssignedContent() {
                         <td className="py-3 px-4 text-teal-800 font-semibold">{a.actividad}</td>
                         <td className="py-3 px-2 text-gray-600 text-center font-bold">{a.horas}</td>
                         <td className="py-3 px-4 text-right">
-                          <button 
+                          <button
                             onClick={() => eliminarOtraActividad(a.asignacion_actividad_id)}
-                            className="text-gray-400 hover:text-red-500 cursor-pointer p-1 transition-colors" 
+                            className="text-gray-400 hover:text-red-500 cursor-pointer p-1 transition-colors"
                             title="Eliminar actividad"
                           >
                             <X size={18} />
@@ -201,7 +211,7 @@ export default function AssignedContent() {
                     ))}
                   </tbody>
                 </table>
-                
+
                 {otrasActividades.length === 0 && (
                   <div className={`flex-1 m-4 border-2 border-dashed rounded-lg flex flex-col items-center justify-center min-h-50 transition-colors ${snapshot.isDraggingOver ? 'border-teal-400 bg-teal-100/50 text-teal-600' : 'border-teal-200 text-teal-400 bg-teal-50/30'}`}>
                     <Inbox size={24} className="mb-2 opacity-50" />
@@ -223,7 +233,7 @@ export default function AssignedContent() {
             <div className="px-6 py-4 border-b border-gray-100 bg-purple-50">
               <h3 className="text-lg font-bold text-purple-900">Motivo de Descarga</h3>
             </div>
-            
+
             <div className="p-6">
               <p className="text-sm text-gray-600 mb-3">
                 Por favor, ingresa el motivo administrativo o académico por el cual esta materia será descargada del tablero del docente.
@@ -236,17 +246,17 @@ export default function AssignedContent() {
                 autoFocus
               ></textarea>
             </div>
-            
+
             <div className="px-6 py-4 border-t border-gray-100 bg-gray-50 flex justify-end gap-3">
-              <button 
+              <button
                 onClick={handleCloseModal}
                 className="px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-200 rounded-md transition-colors cursor-pointer"
               >
                 Cancelar
               </button>
-              <button 
+              <button
                 onClick={handleConfirmarDescarga}
-                disabled={motivoDescarga.trim() === ''}
+                disabled={motivoObligatorio && motivoDescarga.trim() === ''}
                 className="px-4 py-2 text-sm font-medium text-white bg-purple-600 hover:bg-purple-700 rounded-md disabled:bg-purple-300 disabled:cursor-not-allowed transition-colors cursor-pointer shadow-sm"
               >
                 Confirmar Descarga

@@ -6,6 +6,7 @@ from src.infrastructure.api.routers import areas_router
 from src.infrastructure.api.routers import asignaciones_router
 from src.infrastructure.api.routers import categorias_router
 from src.infrastructure.api.routers import ciclos_router
+from src.infrastructure.api.routers import configuracion_router
 from src.infrastructure.api.routers import docentes_router
 from src.infrastructure.api.routers import materias_router
 from src.infrastructure.api.routers import planes_estudios_router
@@ -29,6 +30,7 @@ app.include_router(areas_router.router)
 app.include_router(asignaciones_router.router)
 app.include_router(categorias_router.router)
 app.include_router(ciclos_router.router)
+app.include_router(configuracion_router.router)
 app.include_router(docentes_router.router)
 app.include_router(materias_router.router)
 app.include_router(planes_estudios_router.router)

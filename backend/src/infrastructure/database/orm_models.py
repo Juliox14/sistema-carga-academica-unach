@@ -55,7 +55,7 @@ class Usuario(Base):
     __tablename__ = 'usuarios'
 
     id = Column(BigInteger, primary_key=True, autoincrement=True)
-    email_institucional = Column(String(150), unique=True, nullable=False)
+    email_institucional: Mapped[str] = mapped_column(String(150), unique=True, nullable=False)
     password_hash = Column(String(255), nullable=False)
     rol_id = Column(BigInteger, ForeignKey('roles.id'), nullable=False)
     activo = Column(Boolean, default=True, nullable=False)
@@ -159,7 +159,7 @@ class Docente(Base):
 class Materia(Base):
     __tablename__ = 'materias'
 
-    id = Column(BigInteger, primary_key=True, autoincrement=True)
+    id: Mapped[BigInteger] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
     nombre_asignatura = Column(String(150), nullable=False)
     plan_estudios_id = Column(BigInteger, ForeignKey('plan_estudios.id'), nullable=False)
     numero_periodo: Mapped[int|None] = mapped_column(Integer, nullable=True)  # Puede ser null para materias que no siguen la estructura tradicional
@@ -237,3 +237,14 @@ class AsignacionCarga(Base):
     
     docente_titular = relationship("Docente", foreign_keys=[docente_titular_id], back_populates="asignaciones_titular")
     docente_temporal = relationship("Docente", foreign_keys=[docente_temporal_id], back_populates="asignaciones_temporal")
+    
+
+class ConfiguracionSistema(Base):
+    __tablename__ = 'configuracion_sistema'
+
+    clave: Mapped[str] = mapped_column(String(100), primary_key=True)
+    modulo: Mapped[str] = mapped_column(String(50), nullable=False)
+    nombre_descriptivo: Mapped[str] = mapped_column(String(150), nullable=False)
+    tipo_dato: Mapped[str] = mapped_column(String(20), nullable=False)
+    valor: Mapped[str] = mapped_column(String(255), nullable=False)
+    

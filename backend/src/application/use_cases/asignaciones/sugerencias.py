@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func
 from .disponibilidad import obtener_materias_disponibles
 from src.infrastructure.database.orm_models import Docente, AreaConocimiento, CategoriaDocente, AsignacionCarga, Materia
+from src.infrastructure.config.settings_service import ConfiguracionService
 from .historial import obtener_mapa_historial_docente, obtener_maximos_historicos_batch
 from ..ciclos_service import obtener_ciclo_activo
 
@@ -26,6 +27,7 @@ def obtener_materias_sugeridas(session: Session, docente_id: int, plan_id: int, 
     maximos_historicos = obtener_maximos_historicos_batch(session)
     areas_query = session.query(AreaConocimiento.id).filter(AreaConocimiento.docentes.any(id=docente_id)).all()
     areas_docente_ids = {area[0] for area in areas_query}
+    pesos: dict = ConfiguracionService.obtener("PESOS_SUGERENCIAS", {"historial": 35, "area": 25, "turno": 15, "prioridad": 15, "carga": 10}) #type: ignore
     
     categoria = session.query(CategoriaDocente).filter(CategoriaDocente.id == docente.categoria_id).first() if docente else None
     
@@ -76,7 +78,7 @@ def obtener_materias_sugeridas(session: Session, docente_id: int, plan_id: int, 
         if veces_impartida > 0:
             record_materia = max(1, maximos_historicos.get(m_id, 1))
             
-            pts_historial = (veces_impartida / record_materia) * 35.0
+            pts_historial = (veces_impartida / record_materia) * pesos.get("historial", 35)
             
             pts_historial = min(35.0, pts_historial)
             
@@ -86,17 +88,16 @@ def obtener_materias_sugeridas(session: Session, docente_id: int, plan_id: int, 
         
         # Área de Conocimiento (Máx 25 pts)
         if materia.get('area_conocimiento_id') in areas_docente_ids:
-            score_total += 25.0
-            desglose["area"] = 25.0
-            
+            score_total += pesos.get("area", 25)
+            desglose["area"] = pesos.get("area", 25)
 
         # Compatibilidad de Turno (Máx 15 pts)
         if d_turno == m_turno:
-            score_total += 15.0
-            desglose["turno"] = 15.0
+            score_total += pesos.get("turno", 15)
+            desglose["turno"] = pesos.get("turno", 15)
         elif d_turno == "Mixto" or m_turno == "Mixto":
-            score_total += 11.25
-            desglose["turno"] = 11.25
+            score_total += pesos.get("turno", 15) / 1.5
+            desglose["turno"] = round(pesos.get("turno", 15) / 1.5, 1)
 
         # Añadimos al Heap (Multiplicamos score_total por -1 para simular un Max-Heap)
         materia_puntuada = (

@@ -1,6 +1,8 @@
 import { create } from 'zustand';
 import api from '../../../services/api';
+import { isAxiosError } from 'axios';
 import type { ActividadBaseDTO, TabType, MateriaAsignadaDTO, OtraActividadAsignadaDTO, MateriaDisponibleDTO, TableroDocenteResponse, MateriaSugeridaDTO } from '../../../types/asignaciones';
+import toast from 'react-hot-toast';
 
 interface AsignacionState {
   nombreDocente: string;
@@ -193,9 +195,15 @@ export const useAsignacionStore = create<AsignacionState>((set, get) => ({
       await get().fetchTablero();
       await get().fetchDisponibles();
       await get().fetchSugerencias();
+      toast.success('Materia asignada exitosamente');
+
     } catch (error: any) {
-      console.error("Error al vincular:", error);
-      alert(error.response?.data?.detail || 'Error al vincular materia');
+      if (isAxiosError(error) && error.response?.status === 400) {
+        const mensajeServidor = error.response.data.detail;
+        toast.error(mensajeServidor);
+      } else {
+        toast.error('Error al vincular materia');
+      }
     } finally {
       set({ isLoading: false });
     }
@@ -209,9 +217,10 @@ export const useAsignacionStore = create<AsignacionState>((set, get) => ({
       await get().fetchTablero();
       await get().fetchDisponibles();
       await get().fetchSugerencias();
+      toast.success('Materia desvinculada exitosamente');
     } catch (error: any) {
       console.error('Error al desvincular:', error);
-      alert(error.response?.data?.detail || 'Error al desvincular materia');
+      toast.error(error.response?.data?.detail || 'Error al desvincular materia');
     } finally {
       set({ isLoading: false });
     }
@@ -242,9 +251,10 @@ export const useAsignacionStore = create<AsignacionState>((set, get) => ({
       await get().fetchTablero();
       await get().fetchDisponibles();
       await get().fetchSugerencias();
+      toast.success('Descarga asignada exitosamente');
     } catch (error: any) {
       console.error('Error al asignar descarga:', error);
-      alert(error.response?.data?.detail || 'Error al procesar la descarga');
+      toast.error(error.response?.data?.detail || 'Error al procesar la descarga');
     } finally {
       set({ isLoading: false });
     }
@@ -258,9 +268,10 @@ export const useAsignacionStore = create<AsignacionState>((set, get) => ({
       await get().fetchTablero();
       await get().fetchDisponibles();
       await get().fetchSugerencias();
+      toast.success('Descarga revertida exitosamente');
     } catch (error: any) {
       console.error('Error al remover descarga:', error);
-      alert(error.response?.data?.detail || 'Error al revertir la descarga');
+      toast.error(error.response?.data?.detail || 'Error al revertir la descarga');
     } finally {
       set({ isLoading: false });
     }
@@ -284,9 +295,10 @@ export const useAsignacionStore = create<AsignacionState>((set, get) => ({
 
       await get().fetchTablero();
       await get().fetchSugerencias();
+      toast.success('Actividad asignada exitosamente');
     } catch (error: any) {
       console.error('Error al asignar otra actividad:', error);
-      alert(error.response?.data?.detail || 'Error al asignar la actividad');
+      toast.error(error.response?.data?.detail || 'Error al asignar la actividad');
     } finally {
       set({ isLoading: false });
     }
@@ -298,9 +310,10 @@ export const useAsignacionStore = create<AsignacionState>((set, get) => ({
       await api.delete(`/asignaciones/actividades/${asignacionActividadId}`);
 
       await get().fetchTablero();
+      toast.success('Actividad eliminada exitosamente');
     } catch (error: any) {
       console.error('Error al eliminar otra actividad:', error);
-      alert(error.response?.data?.detail || 'Error al eliminar la actividad');
+      toast.error(error.response?.data?.detail || 'Error al eliminar la actividad');
     } finally {
       set({ isLoading: false });
     }

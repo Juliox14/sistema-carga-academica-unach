@@ -1,5 +1,6 @@
 import { createBrowserRouter, RouterProvider, Navigate } from 'react-router-dom';
 import MainLayout from './layouts/MainLayout';
+import { Toaster } from 'react-hot-toast';
 // import ProtectedRoute from './components/auth/ProtectedRoute';
 import ActividadesDashboard from './features/actividades/ActividadesDashboard';
 import AreasDashboard from './features/areasConocimiento/AreasDashboard';
@@ -7,6 +8,7 @@ import AperturaDashboard from './features/apertura/AperturaDashboard';
 import AssignmentDashboard from './features/asignacion/AssignmentDashboard';
 import CategoriasDashboard from './features/categorias/CategoriasDashboard';
 import CiclosDashboard from './features/ciclos/CiclosDashboard';
+import ConfiguracionDashboard from './features/configuracion/ConfiguracionDashboard';
 import DocentesDashboard from './features/docentes/DocentesDashboard';
 import MateriasDashboard from './features/materias/MateriasDashboard';
 import ProgramasDashboard from './features/programas/ProgramasDashboard';
@@ -38,6 +40,10 @@ const router = createBrowserRouter([
       {
         path: 'docentes',
         element: <DocentesDashboard userRole="SECRETARIA_ACADEMICA" />,
+      },
+      {
+        path: 'configuracion',
+        element: <ConfiguracionDashboard />,
       },
       // 2. AÑADIR LAS RUTAS DE CATÁLOGOS AQUÍ ABAJO
       {
@@ -73,5 +79,9 @@ const router = createBrowserRouter([
 ]);
 
 export default function App() {
-  return <RouterProvider router={router} />;
+  return <>
+    <Toaster />
+    <RouterProvider router={router} />
+  </>
+
 }

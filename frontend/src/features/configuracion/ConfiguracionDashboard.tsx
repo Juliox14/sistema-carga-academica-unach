@@ -1,0 +1,266 @@
+import { useState, useEffect } from 'react';
+import { Save, AlertCircle, Settings, Clock, RefreshCw, BrainCircuit } from 'lucide-react';
+import toast from 'react-hot-toast';
+import { actualizarConfiguraciones } from '../../services/configuracion.service';
+import { useConfigStore } from './store/useConfigStore';
+
+
+export default function ConfiguracionDashboard() {
+    const { configs, fetchConfigs, updateConfigItem, isLoading } = useConfigStore();
+
+    // Estados locales para la vista (se inicializan con los valores del store global)
+    const [motivoObligatorio, setMotivoObligatorio] = useState(configs.DESCARGA_MOTIVO_OBLIGATORIO);
+    const [permitirExcedentes, setPermitirExcedentes] = useState(configs.PERMITIR_HORAS_EXCEDENTES);
+    const [maxHorasExcedentes, setMaxHorasExcedentes] = useState(configs.MAX_HORAS_EXCEDENTES);
+    const [limitarRacha, setLimitarRacha] = useState(configs.MAX_CICLOS_CONSECUTIVOS > 0);
+    const [maxCiclosConsecutivos, setMaxCiclosConsecutivos] = useState(configs.MAX_CICLOS_CONSECUTIVOS || 3);
+    const [pesos, setPesos] = useState(configs.PESOS_SUGERENCIAS);
+
+    // Cargamos las configuraciones al entrar a la pantalla
+    useEffect(() => {
+        fetchConfigs();
+    }, [fetchConfigs]);
+
+    // Sincronizamos los estados locales cuando el fetch termine
+    useEffect(() => {
+        setMotivoObligatorio(configs.DESCARGA_MOTIVO_OBLIGATORIO);
+        setPermitirExcedentes(configs.PERMITIR_HORAS_EXCEDENTES);
+        setMaxHorasExcedentes(configs.MAX_HORAS_EXCEDENTES);
+        setLimitarRacha(configs.MAX_CICLOS_CONSECUTIVOS > 0);
+        setMaxCiclosConsecutivos(configs.MAX_CICLOS_CONSECUTIVOS || 3);
+        setPesos(configs.PESOS_SUGERENCIAS);
+    }, [configs]);
+
+    const handlePesoChange = (key: keyof typeof pesos, value: number) => {
+        setPesos(prev => ({ ...prev, [key]: value }));
+    };
+
+    const totalPesos = Object.values(pesos).reduce((a, b) => a + b, 0);
+    const isPesosValid = totalPesos === 100;
+
+    const handleGuardar = async () => {
+
+        if (!isPesosValid) {
+            toast.error("La suma de los pesos de la IA debe ser exactamente 100%");
+            return;
+        }
+        // 1. Armamos el array exacto que espera FastAPI
+        const payload = [
+            { clave: "DESCARGA_MOTIVO_OBLIGATORIO", valor: motivoObligatorio.toString() },
+            { clave: "PERMITIR_HORAS_EXCEDENTES", valor: permitirExcedentes.toString() },
+            { clave: "MAX_HORAS_EXCEDENTES", valor: maxHorasExcedentes.toString() },
+            { clave: "MAX_CICLOS_CONSECUTIVOS", valor: limitarRacha ? maxCiclosConsecutivos.toString() : "0" },
+            { clave: "PESOS_SUGERENCIAS", valor: JSON.stringify(pesos) }
+        ];
+
+        try {
+            // 2. Disparamos la petición al backend
+            await actualizarConfiguraciones(payload);
+
+            // 3. Actualizamos el store global para que las reglas apliquen inmediatamente
+            updateConfigItem("DESCARGA_MOTIVO_OBLIGATORIO", motivoObligatorio);
+            updateConfigItem("PERMITIR_HORAS_EXCEDENTES", permitirExcedentes);
+            updateConfigItem("MAX_HORAS_EXCEDENTES", maxHorasExcedentes);
+            updateConfigItem("MAX_CICLOS_CONSECUTIVOS", limitarRacha ? maxCiclosConsecutivos : 0);
+            updateConfigItem("PESOS_SUGERENCIAS", pesos);
+            toast.success("Configuraciones aplicadas en todo el sistema");
+        } catch (error) {
+            console.error("Falló al guardar:", error);
+            toast.error("Ocurrió un error al guardar las configuraciones");
+        }
+    };
+
+    if (isLoading) {
+        return <div className="p-8 text-center text-gray-500">Cargando reglas de negocio...</div>;
+    }
+
+    const criteriosSugerencias = [
+        { key: 'historial', label: 'Experiencia previa impartiendo la materia', color: 'bg-blue-500' },
+        { key: 'area', label: 'Afinidad con su Área de Conocimiento', color: 'bg-green-500' },
+        { key: 'turno', label: 'Compatibilidad de Turno', color: 'bg-yellow-500' },
+        { key: 'prioridad', label: 'Prioridad Institucional', color: 'bg-red-500' },
+        { key: 'carga', label: 'Balance de Carga Horaria', color: 'bg-purple-500' }
+    ] as const;
+
+    return (
+        <div className="flex-1 p-8 bg-gray-50/50 overflow-y-auto">
+            <div className="max-w-4xl mx-auto space-y-6">
+
+                {/* Header */}
+                <div className="flex justify-between items-end border-b border-gray-200 pb-4">
+                    <div>
+                        <h1 className="text-2xl font-bold text-[#002d55] flex items-center gap-2">
+                            <Settings size={28} /> Configuración del Sistema
+                        </h1>
+                        <p className="text-gray-500 text-sm mt-1">
+                            Configura las reglas de negocio académicas adecuadas para las necesidades del ciclo académico.
+                        </p>
+                    </div>
+                    <button
+                        onClick={handleGuardar}
+                        className="flex items-center gap-2 bg-[#002d55] hover:bg-blue-900 text-white px-5 py-2 rounded-lg font-medium transition-colors shadow-sm cursor-pointer"
+                    >
+                        <Save size={18} /> Guardar Cambios
+                    </button>
+                </div>
+
+                {/* Sección 1: Carga y Horas */}
+                <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                    <div className="bg-gray-50 px-6 py-4 border-b border-gray-200 flex items-center gap-2">
+                        <Clock size={18} className="text-blue-600" />
+                        <h3 className="font-bold text-gray-800">Límites de Carga Académica</h3>
+                    </div>
+
+                    <div className="p-6 space-y-6">
+                        <div className="flex items-start justify-between">
+                            <div className="max-w-xl">
+                                <h4 className="font-medium text-gray-900">Permitir horas excedentes controladas</h4>
+                                <p className="text-sm text-gray-500 mt-1">
+                                    Autoriza a los coordinadores asignar materias que sobrepasen las HSM (Horas Semana Mes) base del contrato del docente.
+                                </p>
+                            </div>
+                            <label className="relative inline-flex items-center cursor-pointer">
+                                <input type="checkbox" checked={permitirExcedentes} onChange={() => setPermitirExcedentes(!permitirExcedentes)} className="sr-only peer" />
+                                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                            </label>
+                        </div>
+
+                        {/* Sub-configuración dependiente */}
+                        <div className={`pl-4 border-l-2 transition-opacity duration-200 ${permitirExcedentes ? 'border-blue-500 opacity-100' : 'border-gray-200 opacity-40 pointer-events-none'}`}>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                                Margen máximo de horas extra permitidas
+                            </label>
+                            <div className="flex items-center gap-3">
+                                <input
+                                    type="number"
+                                    min="1"
+                                    max="20"
+                                    value={maxHorasExcedentes}
+                                    onChange={(e) => setMaxHorasExcedentes(Number(e.target.value))}
+                                    className="w-24 border border-gray-300 rounded-md p-2 text-center focus:ring-blue-500 focus:border-blue-500"
+                                />
+                                <span className="text-sm text-gray-500">horas. (Ej: Contrato 20h + 3h margen = 23h máximo).</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Sección 2: Rotación Académica (Rachas) */}
+                <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                    <div className="bg-gray-50 px-6 py-4 border-b border-gray-200 flex items-center gap-2">
+                        <RefreshCw size={18} className="text-orange-600" />
+                        <h3 className="font-bold text-gray-800">Rotación y Rachas Académicas</h3>
+                    </div>
+
+                    <div className="p-6 space-y-6">
+                        <div className="flex items-start justify-between">
+                            <div className="max-w-xl">
+                                <h4 className="font-medium text-gray-900">Limitar ciclos consecutivos</h4>
+                                <p className="text-sm text-gray-500 mt-1">
+                                    Bloquea la asignación de una materia si el docente ya la ha impartido ininterrumpidamente durante varios semestres, fomentando la rotación académica.
+                                </p>
+                            </div>
+                            <label className="relative inline-flex items-center cursor-pointer">
+                                <input type="checkbox" checked={limitarRacha} onChange={() => setLimitarRacha(!limitarRacha)} className="sr-only peer" />
+                                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-orange-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-orange-600"></div>
+                            </label>
+                        </div>
+
+                        <div className={`pl-4 border-l-2 transition-opacity duration-200 ${limitarRacha ? 'border-orange-500 opacity-100' : 'border-gray-200 opacity-40 pointer-events-none'}`}>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                                Máximo de periodos consecutivos permitidos
+                            </label>
+                            <div className="flex items-center gap-3">
+                                <input
+                                    type="number"
+                                    min="1"
+                                    max="10"
+                                    value={maxCiclosConsecutivos}
+                                    onChange={(e) => setMaxCiclosConsecutivos(Number(e.target.value))}
+                                    className="w-24 border border-gray-300 rounded-md p-2 text-center focus:ring-orange-500 focus:border-orange-500"
+                                />
+                                <span className="text-sm text-gray-500">semestres seguidos. (Al superarlo, el sistema rechazará la asignación).</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Sección 3: Descargas */}
+                <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                    <div className="bg-gray-50 px-6 py-4 border-b border-gray-200 flex items-center gap-2">
+                        <AlertCircle size={18} className="text-purple-600" />
+                        <h3 className="font-bold text-gray-800">Liberación de Materias (Descargas)</h3>
+                    </div>
+
+                    <div className="p-6">
+                        <div className="flex items-start justify-between">
+                            <div className="max-w-xl">
+                                <h4 className="font-medium text-gray-900">Motivo de descarga obligatorio</h4>
+                                <p className="text-sm text-gray-500 mt-1">
+                                    Exige capturar una justificación escrita (año sabático, comisión, etc.) al remover una carga previamente asignada a un docente titular.
+                                </p>
+                            </div>
+                            <label className="relative inline-flex items-center cursor-pointer">
+                                <input type="checkbox" checked={motivoObligatorio} onChange={() => setMotivoObligatorio(!motivoObligatorio)} className="sr-only peer" />
+                                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-purple-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"></div>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                    <div className="bg-gray-50 px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                            <BrainCircuit size={18} className="text-emerald-600" />
+                            <h3 className="font-bold text-gray-800">Motor de Sugerencias Inteligentes (IA)</h3>
+                        </div>
+
+                        {/* Indicador visual de la suma */}
+                        <div className={`text-sm font-bold px-3 py-1 rounded-full ${isPesosValid ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}`}>
+                            Suma total: {totalPesos}%
+                        </div>
+                    </div>
+
+                    <div className="p-6">
+                        <p className="text-sm text-gray-500 mb-6">
+                            Ajusta el peso (importancia) que el algoritmo le dará a cada criterio al momento de sugerirle materias a un docente. La suma de todos los factores debe ser exactamente 100%.
+                        </p>
+
+                        <div className="space-y-5">
+                            {criteriosSugerencias.map(({ key, label }) => (
+                                <div key={key} className="flex items-center gap-4">
+                                    <div className="w-1/3">
+                                        <label className="text-sm font-medium text-gray-700">{label}</label>
+                                    </div>
+                                    <div className="flex-1">
+                                        <input
+                                            type="range"
+                                            min="0"
+                                            max="100"
+                                            value={pesos[key]}
+                                            onChange={(e) => handlePesoChange(key, Number(e.target.value))}
+                                            className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-emerald-600"
+                                        />
+                                    </div>
+                                    <div className="w-16 text-right">
+                                        <span className="inline-block px-2 py-1 bg-gray-100 rounded text-sm font-bold text-gray-700 border border-gray-200">
+                                            {pesos[key]}%
+                                        </span>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+
+                        {!isPesosValid && (
+                            <div className="mt-4 p-3 bg-red-50 text-red-600 text-sm rounded-md flex items-center gap-2 border border-red-100">
+                                <AlertCircle size={16} />
+                                Debes {totalPesos > 100 ? 'restar' : 'sumar'} {Math.abs(100 - totalPesos)} puntos para poder guardar los cambios.
+                            </div>
+                        )}
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    );
+}

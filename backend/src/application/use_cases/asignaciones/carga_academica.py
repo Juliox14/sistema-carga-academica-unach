@@ -3,7 +3,7 @@ from fastapi import HTTPException
 from src.infrastructure.database.orm_models import Materia, AsignacionCarga, EstadoAsignacion
 from src.infrastructure.api.schemas.asignaciones_schema import VincularMateriaRequest
 from src.application.use_cases.ciclos_service import obtener_ciclo_activo
-from .validaciones import _verificar_limite_hsm
+from .validaciones import _verificar_limite_hsm, _validar_ciclos_consecutivos
 
 
 def vincular_materia_a_docente(db: Session, datos: VincularMateriaRequest):
@@ -13,7 +13,8 @@ def vincular_materia_a_docente(db: Session, datos: VincularMateriaRequest):
     # Validar límite estricto de horas antes de proceder
     if materia:
         _verificar_limite_hsm(db, datos.docente_id, materia.hsm)
-    
+        _validar_ciclos_consecutivos(db, datos.docente_id, datos.materia_id)
+
     asignacion = db.query(AsignacionCarga).filter(
         AsignacionCarga.materia_id == datos.materia_id,
         AsignacionCarga.grupo_asignado_id == datos.grupo_abierto_id,
