@@ -56,9 +56,9 @@ class Usuario(Base):
 
     id = Column(BigInteger, primary_key=True, autoincrement=True)
     email_institucional: Mapped[str] = mapped_column(String(150), unique=True, nullable=False)
-    password_hash = Column(String(255), nullable=False)
+    password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
     rol_id = Column(BigInteger, ForeignKey('roles.id'), nullable=False)
-    activo = Column(Boolean, default=True, nullable=False)
+    activo: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
 
     # Relaciones
     rol = relationship("Rol", back_populates="usuarios")

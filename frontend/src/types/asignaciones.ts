@@ -90,3 +90,34 @@ export interface MateriaSugeridaDTO extends MateriaDisponibleDTO {
   veces_impartida: number;
   desglose: DesglosePuntaje;
 }
+
+export interface DocenteCargaDetalle {
+  id: number;
+  nombre_completo: string;
+  horas_asignadas: number;
+  alerta: boolean;
+}
+
+export interface CoberturaTipoResumen {
+  tipo: string;
+  siglas: string;
+  horas_asignadas: number;
+  horas_requeridas: number;
+  porcentaje: number | null;
+  docentes: DocenteCargaDetalle[];
+}
+
+export interface DocenteIncompletoResumen {
+  id: number;
+  nombre_completo: string;
+  tipo: string;
+  siglas: string;
+  horas_asignadas: number;
+  horas_requeridas: number;
+  horas_pendientes: number;
+}
+
+export interface ResumenCargaResponse {
+  cobertura: CoberturaTipoResumen[];
+  docentes_incompletos: DocenteIncompletoResumen[];
+}

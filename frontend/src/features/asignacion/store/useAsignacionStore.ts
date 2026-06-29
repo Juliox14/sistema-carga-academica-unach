@@ -1,8 +1,9 @@
 import { create } from 'zustand';
 import api from '../../../services/api';
 import { isAxiosError } from 'axios';
-import type { ActividadBaseDTO, TabType, MateriaAsignadaDTO, OtraActividadAsignadaDTO, MateriaDisponibleDTO, TableroDocenteResponse, MateriaSugeridaDTO } from '../../../types/asignaciones';
+import type { ActividadBaseDTO, TabType, MateriaAsignadaDTO, OtraActividadAsignadaDTO, MateriaDisponibleDTO, TableroDocenteResponse, MateriaSugeridaDTO, ResumenCargaResponse, CategoriaDocente } from '../../../types/asignaciones';
 import toast from 'react-hot-toast';
+import { asignacionesService } from '../../../services/asignaciones.service';
 
 interface AsignacionState {
   nombreDocente: string;
@@ -30,6 +31,9 @@ interface AsignacionState {
   horasDescargadas: number;
   horasOtrasActividades: number;
   sumaTotal: number;
+  resumenCarga: ResumenCargaResponse | null;
+  selectedCategoriaId: number | '';
+  categoriasDocentes: CategoriaDocente[];
 
   // Acciones
   setActiveTab: (tab: TabType) => void;
@@ -55,8 +59,9 @@ interface AsignacionState {
   asignarOtraActividad: (actividadId: number, horas: number, observaciones?: string) => Promise<void>;
   eliminarOtraActividad: (asignacionActividadId: number) => Promise<void>;
   fetchSugerencias: () => Promise<void>;
-
-
+  fetchResumenCarga: () => Promise<void>;
+  setSelectedCategoriaId: (id: number | '') => void;
+  setCategoriasDocentes: (categorias: CategoriaDocente[]) => void;
 }
 
 export const useAsignacionStore = create<AsignacionState>((set, get) => ({
@@ -80,6 +85,9 @@ export const useAsignacionStore = create<AsignacionState>((set, get) => ({
   horasDescargadas: 0,
   horasOtrasActividades: 0,
   sumaTotal: 0,
+  resumenCarga: null,
+  selectedCategoriaId: '',
+  categoriasDocentes: [],
 
   setActiveTab: (tab) => set({ activeTab: tab }),
 
@@ -179,6 +187,18 @@ export const useAsignacionStore = create<AsignacionState>((set, get) => ({
     }
   },
 
+  fetchResumenCarga: async () => {
+    try {
+      const data = await asignacionesService.obtenerResumenCarga();
+      set({ resumenCarga: data });
+    } catch (error) {
+      console.error('Error al obtener el resumen de carga:', error);
+    }
+  },
+
+  setSelectedCategoriaId: (id) => set({ selectedCategoriaId: id }),
+  setCategoriasDocentes: (categorias) => set({ categoriasDocentes: categorias }),
+
 
   vincularMateria: async (materiaId: number, grupoAbiertoId: number) => {
     const { docenteSeleccionadoId } = get();
@@ -195,6 +215,7 @@ export const useAsignacionStore = create<AsignacionState>((set, get) => ({
       await get().fetchTablero();
       await get().fetchDisponibles();
       await get().fetchSugerencias();
+      await get().fetchResumenCarga();
       toast.success('Materia asignada exitosamente');
 
     } catch (error: any) {
@@ -217,6 +238,7 @@ export const useAsignacionStore = create<AsignacionState>((set, get) => ({
       await get().fetchTablero();
       await get().fetchDisponibles();
       await get().fetchSugerencias();
+      await get().fetchResumenCarga();
       toast.success('Materia desvinculada exitosamente');
     } catch (error: any) {
       console.error('Error al desvincular:', error);
@@ -251,6 +273,7 @@ export const useAsignacionStore = create<AsignacionState>((set, get) => ({
       await get().fetchTablero();
       await get().fetchDisponibles();
       await get().fetchSugerencias();
+      await get().fetchResumenCarga();
       toast.success('Descarga asignada exitosamente');
     } catch (error: any) {
       console.error('Error al asignar descarga:', error);
@@ -268,6 +291,7 @@ export const useAsignacionStore = create<AsignacionState>((set, get) => ({
       await get().fetchTablero();
       await get().fetchDisponibles();
       await get().fetchSugerencias();
+      await get().fetchResumenCarga();
       toast.success('Descarga revertida exitosamente');
     } catch (error: any) {
       console.error('Error al remover descarga:', error);
@@ -295,6 +319,7 @@ export const useAsignacionStore = create<AsignacionState>((set, get) => ({
 
       await get().fetchTablero();
       await get().fetchSugerencias();
+      await get().fetchResumenCarga();
       toast.success('Actividad asignada exitosamente');
     } catch (error: any) {
       console.error('Error al asignar otra actividad:', error);
@@ -310,6 +335,7 @@ export const useAsignacionStore = create<AsignacionState>((set, get) => ({
       await api.delete(`/asignaciones/actividades/${asignacionActividadId}`);
 
       await get().fetchTablero();
+      await get().fetchResumenCarga();
       toast.success('Actividad eliminada exitosamente');
     } catch (error: any) {
       console.error('Error al eliminar otra actividad:', error);

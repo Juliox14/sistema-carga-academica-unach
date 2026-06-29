@@ -1,6 +1,7 @@
 import { DragDropContext } from '@hello-pangea/dnd';
 import type { DropResult } from '@hello-pangea/dnd';
 import AssignmentHeader from './components/AssignmentHeader';
+import AcademicLoadSummary from './components/AcademicLoadSummary';
 import TeacherStatsBar from './components/TeacherStatsBar';
 import TabNavigation from './components/TabNavigation';
 import SmartSuggestions from './components/SmartSuggestions';
@@ -52,6 +53,8 @@ export default function AssignmentDashboard() {
     <DragDropContext onDragEnd={handleDragEnd}>
       <main className="flex-1 overflow-y-auto p-8 bg-gray-50/30">
         <div className="max-w-7xl mx-auto space-y-6">
+
+          <AcademicLoadSummary />
 
           <AssignmentHeader />
 

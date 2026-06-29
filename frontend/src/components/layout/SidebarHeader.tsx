@@ -22,17 +22,17 @@ const SidebarHeader = ({ collapsed }: { collapsed: boolean }) => (
 
       <div
         className={`overflow-hidden transition-all duration-300 ease-in-out ${
-          collapsed ? 'max-w-0 opacity-0' : 'max-w-[180px] opacity-100'
+          collapsed ? 'max-w-0 opacity-0' : 'max-w-45 opacity-100'
         }`}
       >
-        <div className="w-[180px] shrink-0">
+        <div className="w-45 shrink-0">
           <p className="text-white font-bold text-[10px] leading-tight tracking-wide uppercase">
             Escuela de Tecnologías Digitales Aplicadas
           </p>
           <p className="text-[#A8BCFF] font-medium text-[9px] leading-tight mt-1 tracking-wider uppercase">
             Sistema de
           </p>
-          <p className="text-[#D4E600] font-bold text-[11px] leading-tight tracking-wider uppercase">
+          <p className="text-[#D4E600] font-medium text-[9px] leading-tight tracking-wider uppercase">
             Planeación Académica
           </p>
         </div>

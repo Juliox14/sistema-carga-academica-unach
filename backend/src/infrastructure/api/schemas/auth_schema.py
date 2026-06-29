@@ -22,5 +22,23 @@ class UsuarioResponse(BaseModel):
     rol_id: int
     activo: bool
     rol_clave: Optional[str] = None
+    rol_nombre: Optional[str] = None
 
     model_config = ConfigDict(from_attributes=True)
+
+class RolResponse(BaseModel):
+    id: int
+    nombre: str
+    clave: str
+
+    model_config = ConfigDict(from_attributes=True)
+
+class CambiarRolRequest(BaseModel):
+    clave_rol: str
+
+class CambiarPasswordPropiaRequest(BaseModel):
+    password_actual: str = Field(..., description="Contraseña actual del usuario")
+    nueva_password: str = Field(..., min_length=6, max_length=72, description="Nueva contraseña (6-72 caracteres)")
+
+class RestablecerPasswordRequest(BaseModel):
+    nueva_password: str = Field(..., min_length=6, max_length=72, description="Nueva contraseña (6-72 caracteres)")

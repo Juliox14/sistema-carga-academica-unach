@@ -1,5 +1,5 @@
 import api from './api';
-import type { CatalogosBaseResponse, DocenteFiltrado } from '../types/asignaciones';
+import type { CatalogosBaseResponse, DocenteFiltrado, ResumenCargaResponse } from '../types/asignaciones';
 
 export const asignacionesService = {
   obtenerCatalogosBase: async () => {
@@ -13,6 +13,11 @@ export const asignacionesService = {
     if (query !== '') params.query = query;
 
     const response = await api.get<DocenteFiltrado[]>('/asignaciones/docentes', { params });
+    return response.data;
+  },
+
+  obtenerResumenCarga: async () => {
+    const response = await api.get<ResumenCargaResponse>('/asignaciones/resumen-carga');
     return response.data;
   }
 };

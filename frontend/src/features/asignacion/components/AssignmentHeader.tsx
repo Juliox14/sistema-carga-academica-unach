@@ -5,15 +5,32 @@ import type { PlanEstudio, CategoriaDocente, DocenteFiltrado } from '../../../ty
 import { useAsignacionStore } from '../store/useAsignacionStore';
 
 export default function AssignmentHeader() {
-  const { setDocente, setPlanEstudio, setActividadesDisponibles } = useAsignacionStore();
+  const { 
+    docenteSeleccionadoId, 
+    nombreDocente,
+    setDocente, 
+    setPlanEstudio, 
+    setActividadesDisponibles,
+    selectedCategoriaId,
+    setSelectedCategoriaId,
+    categoriasDocentes,
+    setCategoriasDocentes
+  } = useAsignacionStore();
 
   const [planes, setPlanes] = useState<PlanEstudio[]>([]);
-  const [categorias, setCategorias] = useState<CategoriaDocente[]>([]);
   const [docentes, setDocentes] = useState<DocenteFiltrado[]>([]);
 
   const [selectedPlan, setSelectedPlan] = useState<number | ''>('');
-  const [selectedCategoria, setSelectedCategoria] = useState<number | ''>('');
   const [selectedDocente, setSelectedDocente] = useState<number | ''>('');
+
+  // Sincronizar selección de docente externa
+  useEffect(() => {
+    if (docenteSeleccionadoId !== null) {
+      setSelectedDocente(docenteSeleccionadoId);
+    } else {
+      setSelectedDocente('');
+    }
+  }, [docenteSeleccionadoId]);
 
   // Estados para el Custom Select tipo SIPAD
   const [searchQuery, setSearchQuery] = useState<string>('');
@@ -26,21 +43,21 @@ export default function AssignmentHeader() {
       try {
         const data = await asignacionesService.obtenerCatalogosBase();
         setPlanes(data.planes_estudio || []);
-        setCategorias(data.categorias_docentes || []);
+        setCategoriasDocentes(data.categorias_docentes || []);
         setActividadesDisponibles(data.actividades || []);
       } catch (error) {
         console.error('Error al cargar catálogos base:', error);
       }
     };
     cargarCatalogos();
-  }, [setActividadesDisponibles]);
+  }, [setActividadesDisponibles, setCategoriasDocentes]);
 
   // 2. Traer docentes del backend SOLO cuando cambia la categoría
   useEffect(() => {
     const cargarDocentes = async () => {
       try {
         // Al backend solo le pedimos que filtre por categoría (PTC, PMT, etc.)
-        const data = await asignacionesService.obtenerDocentesFiltrados(selectedCategoria, "");
+        const data = await asignacionesService.obtenerDocentesFiltrados(selectedCategoriaId, "");
         setDocentes(data || []);
 
         if (selectedDocente !== '' && !data.some(d => d.id === selectedDocente)) {
@@ -51,7 +68,7 @@ export default function AssignmentHeader() {
       }
     };
     cargarDocentes();
-  }, [selectedCategoria]);
+  }, [selectedCategoriaId, selectedDocente]);
 
   // 3. Cierra el menú desplegable si hacen clic fuera de él
   useEffect(() => {
@@ -104,19 +121,19 @@ export default function AssignmentHeader() {
             <input
               type="radio"
               name="categoria_docente"
-              checked={selectedCategoria === ''}
-              onChange={() => setSelectedCategoria('')}
+              checked={selectedCategoriaId === ''}
+              onChange={() => setSelectedCategoriaId('')}
               className="accent-[#002d55]"
             /> Todos
           </label>
 
-          {categorias.map((cat) => (
+          {categoriasDocentes.map((cat) => (
             <label key={cat.id} className="flex items-center gap-1.5 cursor-pointer hover:text-[#002d55] transition-colors" title={cat.nombre}>
               <input
                 type="radio"
                 name="categoria_docente"
-                checked={selectedCategoria === cat.id}
-                onChange={() => setSelectedCategoria(cat.id)}
+                checked={selectedCategoriaId === cat.id}
+                onChange={() => setSelectedCategoriaId(cat.id)}
                 className="accent-[#002d55]"
               /> {cat.siglas}
             </label>
@@ -133,8 +150,8 @@ export default function AssignmentHeader() {
           className="w-full border-b-2 border-[#002d55] px-3 py-2 text-sm font-semibold text-[#002d55] bg-teal-50/50 flex justify-between items-center cursor-pointer hover:bg-teal-50 transition-colors"
         >
           <span>
-            {docenteSeleccionadoObj 
-              ? `${docenteSeleccionadoObj.nombre_completo}` 
+            {docenteSeleccionadoId && nombreDocente 
+              ? nombreDocente 
               : 'Seleccione a un docente'}
           </span>
           {isDropdownOpen ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
