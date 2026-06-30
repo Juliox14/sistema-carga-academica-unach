@@ -1,5 +1,7 @@
 from sqlalchemy.orm import Session
 
+import openpyxl as xl
+from io import BytesIO
 from src.infrastructure.database.orm_models import PlanEstudios
 from src.infrastructure.api.schemas.planes_estudios_schema import PlanEstudiosCreate, PlanEstudiosUpdate
 
@@ -44,3 +46,49 @@ def eliminar_plan_estudios(db: Session, plan_id: int):
     db.delete(plan)
     db.commit()
     return True
+
+async def importar_plan_estudios(db: Session, byte_object: BytesIO):
+    try:
+        wb = xl.load_workbook(byte_object)
+        sheet = wb["plan_estudios"]
+        objects = []
+        headers = [cell.value for cell in sheet[1]]
+
+        for row in sheet.iter_rows(min_row=2, values_only=True):
+            row_data = {}
+            for key, value in zip(headers,row):
+                row_data[key] = value
+            
+            object = PlanEstudiosCreate(nombre=row_data["nombre"],
+                                        programa_educativo_id=row_data["programa_educativo_id"],
+                                        vigente=row_data["vigente"],
+                                        tipo_periodo=row_data["tipo_periodo"])
+            #db.add(object)
+            #db.commit()
+            #db.refresh(object)
+            objects.append(object)
+        
+        return objects
+    except Exception as e:
+        raise ValueError(f"Error al crear el plan de estudios: {str(e)}")
+    
+async def exportar_plan_estudios(planes: list):
+    wb = xl.Workbook()
+    sheet = wb.active
+    sheet.title = "planes_estudio"
+
+    headers = ["id", "nombre", "programa_educativo_id", "vigente", "tipo_periodo"]
+    for col_idx, header in enumerate(headers, start=1):
+        sheet.cell(row=1, column=col_idx, value=header)
+
+    for row_idx, plan in enumerate(planes, start=2):
+        sheet.cell(row=row_idx, column=1, value=plan.id)
+        sheet.cell(row=row_idx, column=2, value=plan.nombre)
+        sheet.cell(row=row_idx, column=3, value=plan.programa_educativo_id)
+        sheet.cell(row=row_idx, column=4, value=plan.vigente)
+        sheet.cell(row=row_idx, column=5, value=plan.tipo_periodo)
+
+    buffer = BytesIO()
+    wb.save(buffer)
+    buffer.seek(0)
+    return buffer

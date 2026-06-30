@@ -1,7 +1,9 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from typing import List
-from fastapi import HTTPException
+from fastapi import HTTPException, UploadFile
+from fastapi.responses import StreamingResponse
+from io import BytesIO
 
 from ...database.database import get_db
 from ..schemas.planes_estudios_schema import PlanEstudiosCreate, PlanEstudiosResponse, PlanEstudiosUpdate
@@ -20,6 +22,30 @@ def crear_plan_estudios(plan: PlanEstudiosCreate, db: Session = Depends(get_db))
 def listar_planes_estudios(db: Session = Depends(get_db)):
     planes = planes_estudios_service.obtener_todos_los_planes_estudios(db)
     return planes
+
+@router.post("/import")
+async def importar_plan_estudios(file: UploadFile , db: Session = Depends(get_db)):
+    try:
+        plan_importado = await file.read()
+        byte_object = BytesIO(plan_importado)
+        objects = await planes_estudios_service.importar_plan_estudios(db, byte_object)
+        return objects
+    except ValueError as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    
+@router.get("/export")
+async def exportar_plan_estudios(db: Session = Depends(get_db)):
+    try:
+        planes = planes_estudios_service.obtener_todos_los_planes_estudios(db)
+        buffer = await planes_estudios_service.exportar_plan_estudios(planes)
+        return StreamingResponse(
+            buffer,
+            media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            headers={"Content-Disposition": "attachment; filename=planes_estudio.xlsx"},
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 
 @router.get("/{plan_id}", response_model=PlanEstudiosResponse)
 def obtener_plan_estudios(plan_id: int, db: Session = Depends(get_db)):
