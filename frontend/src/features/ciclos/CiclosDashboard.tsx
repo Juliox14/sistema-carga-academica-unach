@@ -4,7 +4,7 @@ import { ConfirmAlert } from '../../components/ui/ConfirmAlert';
 
 import type { CicloEscolar } from '../../types/ciclos';
 
-import CicloFormSlideOver from '../../components/ciclos/CiclosFormSlideOver';
+import CicloFormSlideOver from './components/CiclosFormSlideOver';
 import { ciclosService } from '../../services/ciclos.service';
 
 export default function CiclosDashboard() {

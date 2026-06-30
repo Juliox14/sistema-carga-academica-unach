@@ -5,17 +5,21 @@ from src.infrastructure.api.schemas.auth_schema import UsuarioRegistro, UsuarioL
 
 def seed_default_roles(db: Session):
     """
-    Crea los roles por defecto si la tabla de roles está vacía.
-    Esto ayuda a evitar errores de claves foráneas en bases de datos vacías.
+    Crea los roles por defecto si la tabla de roles está vacía o faltan roles clave.
     """
-    roles_existentes = db.query(Rol).first()
-    if not roles_existentes:
-        default_roles = [
-            Rol(id=1, nombre="Secretaría Académica", clave="SECRETARIA_ACADEMICA"),
-            Rol(id=2, nombre="Docente", clave="DOCENTE")
-        ]
-        db.add_all(default_roles)
-        db.commit()
+    roles_requeridos = {
+        1: ("Super Administrador", "SUPER_ADMIN"),
+        2: ("Secretaría Académica", "SECRETARIA_ACADEMICA"),
+        3: ("Capturista", "CAPTURISTA"),
+        4: ("Docente", "DOCENTE")
+    }
+    
+    for r_id, (nombre, clave) in roles_requeridos.items():
+        rol_existente = db.query(Rol).filter(Rol.id == r_id).first()
+        if not rol_existente:
+            nuevo_rol = Rol(id=r_id, nombre=nombre, clave=clave)
+            db.add(nuevo_rol)
+    db.commit()
 
 def registrar_usuario(db: Session, registro: UsuarioRegistro) -> Usuario:
     """
@@ -52,8 +56,9 @@ def registrar_usuario(db: Session, registro: UsuarioRegistro) -> Usuario:
     db.commit()
     db.refresh(nuevo_usuario)
     
-    # Asignar rol_clave para facilitar la visualización en la respuesta
+    # Asignar rol_clave y rol_nombre para facilitar la visualización en la respuesta
     nuevo_usuario.rol_clave = rol.clave
+    nuevo_usuario.rol_nombre = rol.nombre
     return nuevo_usuario
 
 def autenticar_usuario(db: Session, login: UsuarioLogin) -> Usuario:
@@ -76,4 +81,101 @@ def autenticar_usuario(db: Session, login: UsuarioLogin) -> Usuario:
         
     # Añadir dinámicamente la clave del rol
     usuario.rol_clave = usuario.rol.clave if usuario.rol else None
+    usuario.rol_nombre = usuario.rol.nombre if usuario.rol else None
     return usuario
+
+
+def obtener_usuarios(db: Session):
+    """
+    Retorna todos los usuarios con sus claves y nombres de roles.
+    """
+    usuarios = db.query(Usuario).all()
+    for u in usuarios:
+        u.rol_clave = u.rol.clave if u.rol else None
+        u.rol_nombre = u.rol.nombre if u.rol else None
+    return usuarios
+
+
+def obtener_roles(db: Session):
+    """
+    Retorna todos los roles del sistema.
+    """
+    return db.query(Rol).all()
+
+
+def cambiar_estado_usuario(db: Session, usuario_id: int):
+    """
+    Alterna el estado activo de un usuario.
+    """
+    usuario = db.query(Usuario).filter(Usuario.id == usuario_id).first()
+    if not usuario:
+        raise ValueError("El usuario no existe")
+    usuario.activo = not usuario.activo
+    db.commit()
+    db.refresh(usuario)
+    usuario.rol_clave = usuario.rol.clave if usuario.rol else None
+    usuario.rol_nombre = usuario.rol.nombre if usuario.rol else None
+    return usuario
+
+
+def cambiar_rol_usuario(db: Session, usuario_id: int, clave_rol: str):
+    """
+    Modifica el rol asignado a un usuario.
+    """
+    usuario = db.query(Usuario).filter(Usuario.id == usuario_id).first()
+    if not usuario:
+        raise ValueError("El usuario no existe")
+    rol = db.query(Rol).filter(Rol.clave == clave_rol.upper()).first()
+    if not rol:
+        raise ValueError(f"El rol especificado '{clave_rol}' no es válido")
+    usuario.rol_id = rol.id
+    db.commit()
+    db.refresh(usuario)
+    usuario.rol_clave = rol.clave
+    usuario.rol_nombre = rol.nombre
+    return usuario
+
+
+def eliminar_usuario(db: Session, usuario_id: int):
+    """
+    Elimina físicamente un usuario de la base de datos.
+    """
+    usuario = db.query(Usuario).filter(Usuario.id == usuario_id).first()
+    if not usuario:
+        raise ValueError("El usuario no existe")
+    db.delete(usuario)
+    db.commit()
+
+
+def restablecer_password(db: Session, usuario_id: int, nueva_password: str):
+    """
+    Cambia la contraseña de un usuario (acción ejecutada por el SUPER_ADMIN).
+    """
+    usuario = db.query(Usuario).filter(Usuario.id == usuario_id).first()
+    if not usuario:
+        raise ValueError("El usuario no existe")
+    usuario.password_hash = hash_password(nueva_password)
+    db.commit()
+    db.refresh(usuario)
+    usuario.rol_clave = usuario.rol.clave if usuario.rol else None
+    usuario.rol_nombre = usuario.rol.nombre if usuario.rol else None
+    return usuario
+
+
+def cambiar_password_propia(db: Session, usuario_id: int, password_actual: str, nueva_password: str):
+    """
+    Cambia la contraseña del usuario actual tras validar la contraseña actual.
+    """
+    usuario = db.query(Usuario).filter(Usuario.id == usuario_id).first()
+    if not usuario:
+        raise ValueError("El usuario no existe")
+    if not verify_password(password_actual, usuario.password_hash):
+        raise ValueError("La contraseña actual es incorrecta")
+    usuario.password_hash = hash_password(nueva_password)
+    db.commit()
+    db.refresh(usuario)
+    usuario.rol_clave = usuario.rol.clave if usuario.rol else None
+    usuario.rol_nombre = usuario.rol.nombre if usuario.rol else None
+    return usuario
+
+

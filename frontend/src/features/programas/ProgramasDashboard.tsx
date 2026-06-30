@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import type { ProgramaEducativo } from "../../types/programas";
 import { programasService } from "../../services/programas.service";
 import { Plus, Search, Pencil, Trash2, Loader2 } from "lucide-react";
-import ProgramaFormSlideOver from "../../components/programas/ProgramaFormSlideOver";
+import ProgramaFormSlideOver from './components/ProgramaFormSlideOver';
 import { ConfirmAlert } from "../../components/ui/ConfirmAlert";
 
 export default function ProgramasDashboard() {

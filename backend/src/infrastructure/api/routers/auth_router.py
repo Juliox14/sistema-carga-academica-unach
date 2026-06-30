@@ -69,14 +69,19 @@ from fastapi import APIRouter, Depends, HTTPException, status, Request
 from sqlalchemy.orm import Session
 
 from src.infrastructure.database.database import get_db
+from typing import List
 from src.infrastructure.api.schemas.auth_schema import (
     UsuarioRegistro,
     UsuarioLogin,
     Token,
-    UsuarioResponse
+    UsuarioResponse,
+    RolResponse,
+    CambiarRolRequest,
+    CambiarPasswordPropiaRequest,
+    RestablecerPasswordRequest
 )
 from src.application.use_cases import auth_service
-from src.infrastructure.security import create_access_token, get_current_user
+from src.infrastructure.security import create_access_token, get_current_user, require_roles
 from src.infrastructure.database.orm_models import Usuario
 from src.application.ports.output.logger_port import LoggerPort
 
@@ -85,10 +90,14 @@ router = APIRouter(prefix="/api/auth", tags=["Autenticación"])
 
 def get_logger(request: Request) -> LoggerPort:
     """Inyecta el logger desde el estado de la aplicación."""
-    return request.app.state.logger
+    logger = getattr(request.app.state, "logger", None)
+    if logger is None:
+        from src.infrastructure.adapters.output.logging.console_logger_adapter import ConsoleLoggerAdapter
+        return ConsoleLoggerAdapter()
+    return logger
 
 
-@router.post("/registro", response_model=UsuarioResponse, status_code=status.HTTP_201_CREATED)
+@router.post("/registro", response_model=UsuarioResponse, status_code=status.HTTP_201_CREATED, dependencies=[Depends(require_roles(["SUPER_ADMIN"]))])
 def registrar(
     registro: UsuarioRegistro,
     request: Request,
@@ -180,6 +189,7 @@ def obtener_perfil(
             trace_id=trace_id,
         )
         current_user.rol_clave = current_user.rol.clave if current_user.rol else None
+        current_user.rol_nombre = current_user.rol.nombre if current_user.rol else None
         return current_user
     except Exception as e:
         logger.error(
@@ -191,3 +201,75 @@ def obtener_perfil(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Error al obtener el perfil del usuario"
         )
+
+
+@router.get("/usuarios", response_model=List[UsuarioResponse], dependencies=[Depends(require_roles(["SUPER_ADMIN"]))])
+def listar_usuarios(db: Session = Depends(get_db)):
+    """
+    Retorna la lista de todos los usuarios registrados (solo SUPER_ADMIN).
+    """
+    return auth_service.obtener_usuarios(db)
+
+
+@router.get("/roles", response_model=List[RolResponse], dependencies=[Depends(require_roles(["SUPER_ADMIN"]))])
+def listar_roles(db: Session = Depends(get_db)):
+    """
+    Retorna todos los roles del sistema (solo SUPER_ADMIN).
+    """
+    return auth_service.obtener_roles(db)
+
+
+@router.patch("/usuarios/{usuario_id}/toggle-activo", response_model=UsuarioResponse, dependencies=[Depends(require_roles(["SUPER_ADMIN"]))])
+def toggle_usuario_activo(usuario_id: int, db: Session = Depends(get_db)):
+    """
+    Alterna el estado activo/inactivo de un usuario (solo SUPER_ADMIN).
+    """
+    try:
+        return auth_service.cambiar_estado_usuario(db, usuario_id)
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
+
+@router.patch("/usuarios/{usuario_id}/rol", response_model=UsuarioResponse, dependencies=[Depends(require_roles(["SUPER_ADMIN"]))])
+def actualizar_usuario_rol(usuario_id: int, body: CambiarRolRequest, db: Session = Depends(get_db)):
+    """
+    Modifica el rol de un usuario (solo SUPER_ADMIN).
+    """
+    try:
+        return auth_service.cambiar_rol_usuario(db, usuario_id, body.clave_rol)
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
+
+@router.delete("/usuarios/{usuario_id}", status_code=status.HTTP_200_OK, dependencies=[Depends(require_roles(["SUPER_ADMIN"]))])
+def borrar_usuario(usuario_id: int, db: Session = Depends(get_db)):
+    """
+    Elimina físicamente un usuario del sistema (solo SUPER_ADMIN).
+    """
+    try:
+        auth_service.eliminar_usuario(db, usuario_id)
+        return {"message": "Usuario eliminado exitosamente"}
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
+
+@router.patch("/usuarios/{usuario_id}/reset-password", response_model=UsuarioResponse, dependencies=[Depends(require_roles(["SUPER_ADMIN"]))])
+def restablecer_usuario_password(usuario_id: int, body: RestablecerPasswordRequest, db: Session = Depends(get_db)):
+    """
+    Restablece la contraseña de un usuario (solo SUPER_ADMIN).
+    """
+    try:
+        return auth_service.restablecer_password(db, usuario_id, body.nueva_password)
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
+
+@router.patch("/usuarios/me/change-password", response_model=UsuarioResponse)
+def cambiar_mi_password(body: CambiarPasswordPropiaRequest, current_user: Usuario = Depends(get_current_user), db: Session = Depends(get_db)):
+    """
+    Permite a cualquier usuario autenticado cambiar su propia contraseña.
+    """
+    try:
+        return auth_service.cambiar_password_propia(db, current_user.id, body.password_actual, body.nueva_password)
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))

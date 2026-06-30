@@ -3,7 +3,7 @@ import { Plus, Pencil, Trash2, Search, Loader2, AlertCircle } from 'lucide-react
 import { ConfirmAlert } from '../../components/ui/ConfirmAlert';
 
 import type { CategoriaDocente } from '../../types/categorias';
-import CategoriaFormSlideOver from '../../components/categorias/CategoriasFormSlideOver';
+import CategoriaFormSlideOver from './components/CategoriasFormSlideOver';
 import { categoriasService } from '../../services/categorias.service';
 
 export default function CategoriasDashboard({ userRole = 'SECRETARIA_ACADEMICA' }) {

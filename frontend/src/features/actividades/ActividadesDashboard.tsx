@@ -3,7 +3,7 @@ import { Plus, Pencil, Trash2, Search, Loader2, AlertCircle } from 'lucide-react
 import { ConfirmAlert } from '../../components/ui/ConfirmAlert';
 
 import type { OtraActividad } from '../../types/actividades';
-import ActividadFormSlideOver from '../../components/actividades/ActividadesFormSlideOver';
+import ActividadFormSlideOver from './components/ActividadesFormSlideOver';
 import { actividadesService } from '../../services/actividades.service';
 
 export default function ActividadesDashboard({ userRole = 'SECRETARIA_ACADEMICA' }) {

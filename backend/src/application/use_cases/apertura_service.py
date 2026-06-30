@@ -1,4 +1,3 @@
-# src/application/use_cases/apertura_service.py
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from src.infrastructure.database.orm_models import CicloEscolar, GrupoAbierto, Materia

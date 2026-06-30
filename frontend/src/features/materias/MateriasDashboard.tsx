@@ -6,7 +6,7 @@ import { ConfirmAlert } from '../../components/ui/ConfirmAlert';
 import type { Materia } from '../../types/materias';
 import { planesEstudioService } from '../../services/planesEstudio.service';
 
-import MateriaFormSlideOver from '../../components/materias/MateriaFormSlideOver';
+import MateriaFormSlideOver from './components/MateriaFormSlideOver';
 import { materiasService } from '../../services/materias.service';
 
 export default function MateriasDashboard({ userRole = 'SECRETARIA_ACADEMICA' }) {
@@ -108,7 +108,7 @@ export default function MateriasDashboard({ userRole = 'SECRETARIA_ACADEMICA' })
       <div className="bg-white p-4 border border-gray-200 border-b-0 flex gap-4">
         <div className="relative grow max-w-md">
           <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-          <input type="text" placeholder="Buscar por nombre o clave..." className="w-full border border-gray-300 pl-10 pr-4 py-2 text-sm focus:outline-none focus:border-[#002d55] bg-gray-50" />
+          <input type="text" placeholder="Buscar por nombre..." className="w-full border border-gray-300 pl-10 pr-4 py-2 text-sm focus:outline-none focus:border-[#002d55] bg-gray-50" />
         </div>
       </div>
 
@@ -121,9 +121,8 @@ export default function MateriasDashboard({ userRole = 'SECRETARIA_ACADEMICA' })
         <table className="w-full text-sm text-left border-collapse">
           <thead className="bg-gray-50 border-b border-gray-200 text-gray-600 text-xs uppercase tracking-wide">
             <tr>
-              <th className="py-3 px-4 font-semibold">Clave</th>
               <th className="py-3 px-4 font-semibold">Materia</th>
-              <th className="py-3 px-4 font-semibold text-center">Semestre</th>
+              <th className="py-3 px-4 font-semibold text-center">Periodo</th>
               <th className="py-3 px-4 font-semibold text-center">HSM</th>
               <th className="py-3 px-4 font-semibold">Plan de Estudios</th>
               <th className="py-3 px-4 font-semibold text-right">Acciones</th>
@@ -136,10 +135,8 @@ export default function MateriasDashboard({ userRole = 'SECRETARIA_ACADEMICA' })
               </tr>
             ) : (
               materias.map((materia) => (
-                <tr key={materia.id} className="hover:bg-blue-50/50 transition-colors group">
-                  <td className="py-3 px-4 font-bold text-gray-700">{materia.clave}</td>
-                  <td className="py-3 px-4 font-medium text-[#002d55]">{materia.nombre}</td>
-                  <td className="py-3 px-4 text-center text-gray-600">{materia.semestre}º</td>
+                <tr key={materia.id} className="hover:bg-blue-50/50 transition-colors group">                  <td className="py-3 px-4 font-medium text-[#002d55]">{materia.nombre_asignatura}</td>
+                  <td className="py-3 px-4 text-center text-gray-600">{materia.numero_periodo}º</td>
                   <td className="py-3 px-4 text-center font-semibold text-gray-700">{materia.hsm} hrs</td>
                   <td className="py-3 px-4 text-gray-600">{getNombrePlan(materia.plan_estudios_id)}</td>
                   
