@@ -36,8 +36,7 @@ async def importar_plan_estudios(file: UploadFile , db: Session = Depends(get_db
 @router.get("/export")
 async def exportar_plan_estudios(db: Session = Depends(get_db)):
     try:
-        planes = planes_estudios_service.obtener_todos_los_planes_estudios(db)
-        buffer = await planes_estudios_service.exportar_plan_estudios(planes)
+        buffer = await planes_estudios_service.exportar_plan_estudios(db)
         return StreamingResponse(
             buffer,
             media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",

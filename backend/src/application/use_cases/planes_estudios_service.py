@@ -55,24 +55,25 @@ async def importar_plan_estudios(db: Session, byte_object: BytesIO):
         headers = [cell.value for cell in sheet[1]]
 
         for row in sheet.iter_rows(min_row=2, values_only=True):
-            row_data = {}
-            for key, value in zip(headers,row):
-                row_data[key] = value
-            
-            object = PlanEstudiosCreate(nombre=row_data["nombre"],
-                                        programa_educativo_id=row_data["programa_educativo_id"],
-                                        vigente=row_data["vigente"],
-                                        tipo_periodo=row_data["tipo_periodo"])
-            #db.add(object)
-            #db.commit()
-            #db.refresh(object)
-            objects.append(object)
-        
+            row_data = {key: value for key, value in zip(headers, row)}
+            if not any(value is not None and str(value).strip() != "" for value in row_data.values()):
+                continue
+
+            plan_data = PlanEstudiosCreate(
+                nombre=str(row_data.get("nombre") or "").strip(),
+                programa_educativo_id=int(row_data.get("programa_educativo_id") or 0),
+                vigente=row_data.get("vigente") if row_data.get("vigente") is not None else True,
+                tipo_periodo=row_data.get("tipo_periodo")
+            )
+            nuevo_plan = crear_nuevo_plan_estudios(db, plan_data)
+            objects.append(nuevo_plan)
+
         return objects
     except Exception as e:
         raise ValueError(f"Error al crear el plan de estudios: {str(e)}")
     
-async def exportar_plan_estudios(planes: list):
+async def exportar_plan_estudios(db: Session):
+    planes = db.query(PlanEstudios).all()
     wb = xl.Workbook()
     sheet = wb.active
     sheet.title = "planes_estudio"
@@ -86,7 +87,7 @@ async def exportar_plan_estudios(planes: list):
         sheet.cell(row=row_idx, column=2, value=plan.nombre)
         sheet.cell(row=row_idx, column=3, value=plan.programa_educativo_id)
         sheet.cell(row=row_idx, column=4, value=plan.vigente)
-        sheet.cell(row=row_idx, column=5, value=plan.tipo_periodo)
+        sheet.cell(row=row_idx, column=5, value=plan.tipo_periodo.value)
 
     buffer = BytesIO()
     wb.save(buffer)
