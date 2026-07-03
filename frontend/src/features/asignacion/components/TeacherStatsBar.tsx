@@ -15,7 +15,7 @@ export default function TeacherStatsBar() {
   } = useAsignacionStore();
 
   // Prevención de división por cero
-  const baseSegura = hsmBase > 0 ? hsmBase : 40;
+  const baseSegura = hsmBase > 0 ? hsmBase : 50;
 
   const pFrente = (horasFrenteGrupo / baseSegura) * 100;
   const pOtras = (horasOtrasActividades / baseSegura) * 100;
@@ -50,7 +50,7 @@ export default function TeacherStatsBar() {
       </div>
       
       <div className="flex flex-col items-end gap-2">
-        <span className="text-sm font-bold text-[#002d55]">Total Asignado: {sumaTotal} / {hsmBase} hrs</span>
+        <span className="text-sm font-bold text-[#002d55]">Total Asignado: {sumaTotal} / {baseSegura !== 50 ? baseSegura : "Sin límite"} hrs</span>
         <div className="w-64 h-2.5 bg-gray-200 rounded-full overflow-hidden flex">
           <div 
             className="h-full bg-blue-500 transition-all duration-500" 

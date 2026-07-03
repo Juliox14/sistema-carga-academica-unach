@@ -19,11 +19,13 @@ export interface Rol {
 interface UsuariosState {
   usuarios: Usuario[];
   roles: Rol[];
+  docentesSinUsuario: any[];
   isLoading: boolean;
 
   fetchUsuarios: () => Promise<void>;
   fetchRoles: () => Promise<void>;
-  crearUsuario: (email: string, password: string, claveRol: string) => Promise<void>;
+  fetchDocentesSinUsuario: () => Promise<void>;
+  crearUsuario: (email: string, password: string | null, claveRol: string, docenteId?: number | null) => Promise<any>;
   toggleActivo: (usuarioId: number) => Promise<void>;
   cambiarRol: (usuarioId: number, claveRol: string) => Promise<void>;
   eliminarUsuario: (usuarioId: number) => Promise<void>;
@@ -33,6 +35,7 @@ interface UsuariosState {
 export const useUsuariosStore = create<UsuariosState>((set, get) => ({
   usuarios: [],
   roles: [],
+  docentesSinUsuario: [],
   isLoading: false,
 
   fetchUsuarios: async () => {
@@ -55,17 +58,38 @@ export const useUsuariosStore = create<UsuariosState>((set, get) => ({
     }
   },
 
-  crearUsuario: async (email, password, claveRol) => {
+  fetchDocentesSinUsuario: async () => {
+    try {
+      const response = await api.get('/auth/usuarios/docentes-sin-usuario');
+      set({ docentesSinUsuario: response.data });
+    } catch (error) {
+      console.error('Error al cargar docentes sin usuario:', error);
+    }
+  },
+
+  crearUsuario: async (email, password, claveRol, docenteId) => {
     set({ isLoading: true });
     try {
-      await api.post('/auth/registro', {
+      const response = await api.post('/auth/registro', {
         email_institucional: email,
-        password: password,
-        clave_rol: claveRol
+        password: password || undefined,
+        clave_rol: claveRol,
+        docente_id: docenteId || undefined
       });
+      const data = response.data;
+      
       // Volver a listar para tener la tabla actualizada
-      const response = await api.get('/auth/usuarios');
-      set({ usuarios: response.data, isLoading: false });
+      const listResponse = await api.get('/auth/usuarios');
+      set({ usuarios: listResponse.data, isLoading: false });
+      
+      // Limpiar el docente creado de la lista de docentes sin usuario
+      if (docenteId) {
+        set((state) => ({
+          docentesSinUsuario: state.docentesSinUsuario.filter((d) => d.id !== docenteId)
+        }));
+      }
+
+      return data;
     } catch (error) {
       set({ isLoading: false });
       throw error;

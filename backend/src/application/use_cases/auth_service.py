@@ -1,7 +1,8 @@
 from sqlalchemy.orm import Session
-from src.infrastructure.database.orm_models import Usuario, Rol
+from src.infrastructure.database.orm_models import Usuario, Rol, Docente
 from src.infrastructure.security import hash_password, verify_password
 from src.infrastructure.api.schemas.auth_schema import UsuarioRegistro, UsuarioLogin
+import secrets
 
 def seed_default_roles(db: Session):
     """
@@ -44,22 +45,46 @@ def registrar_usuario(db: Session, registro: UsuarioRegistro) -> Usuario:
         raise ValueError(f"El rol especificado '{registro.clave_rol}' no es válido o no existe")
 
     # 4. Encriptar contraseña y crear usuario
-    hashed_pw = hash_password(registro.password)
+    password_usada = registro.password
+    if not password_usada:
+        password_usada = f"UNACH-{secrets.token_hex(3).upper()}"
+
+    hashed_pw = hash_password(password_usada)
     nuevo_usuario = Usuario(
         email_institucional=registro.email_institucional,
         password_hash=hashed_pw,
         rol_id=rol.id,
-        activo=True
+        activo=True,
+        requiere_cambio_password=True # Creado por Admin requiere cambio obligatorio
     )
     
     db.add(nuevo_usuario)
     db.commit()
     db.refresh(nuevo_usuario)
+
+    # 5. Si es rol DOCENTE y se provee docente_id, vincularlo
+    if clave_rol_buscado == "DOCENTE" and registro.docente_id:
+        docente = db.query(Docente).filter(Docente.id == registro.docente_id).first()
+        if not docente:
+            raise ValueError("El docente especificado no existe")
+        if docente.usuario_id is not None:
+            raise ValueError("El docente ya está vinculado a un usuario")
+        docente.usuario_id = nuevo_usuario.id
+        db.commit()
+        db.refresh(nuevo_usuario)
     
     # Asignar rol_clave y rol_nombre para facilitar la visualización en la respuesta
     nuevo_usuario.rol_clave = rol.clave
     nuevo_usuario.rol_nombre = rol.nombre
-    return nuevo_usuario
+    return nuevo_usuario, password_usada
+
+
+def obtener_docentes_sin_usuario(db: Session):
+    """
+    Retorna la lista de docentes activos que no tienen un usuario vinculado.
+    """
+    return db.query(Docente).filter(Docente.usuario_id == None).all()
+
 
 def autenticar_usuario(db: Session, login: UsuarioLogin) -> Usuario:
     """
@@ -172,6 +197,7 @@ def cambiar_password_propia(db: Session, usuario_id: int, password_actual: str, 
     if not verify_password(password_actual, usuario.password_hash):
         raise ValueError("La contraseña actual es incorrecta")
     usuario.password_hash = hash_password(nueva_password)
+    usuario.requiere_cambio_password = False
     db.commit()
     db.refresh(usuario)
     usuario.rol_clave = usuario.rol.clave if usuario.rol else None

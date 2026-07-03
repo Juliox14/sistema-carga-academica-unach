@@ -7,6 +7,14 @@ def crear_docente(db: Session, docente_data: DocenteCreate):
     datos_dict = docente_data.model_dump(exclude={"areas_conocimiento_ids"})
     areas_ids = docente_data.areas_conocimiento_ids
     
+    # Asegurar mayúsculas en nombre, apellidos y plaza
+    if "nombre" in datos_dict and datos_dict["nombre"]:
+        datos_dict["nombre"] = datos_dict["nombre"].upper()
+    if "apellidos" in datos_dict and datos_dict["apellidos"]:
+        datos_dict["apellidos"] = datos_dict["apellidos"].upper()
+    if "plaza" in datos_dict and datos_dict["plaza"]:
+        datos_dict["plaza"] = datos_dict["plaza"].upper()
+    
     # 2. Creamos la instancia del docente
     nuevo_docente = Docente(**datos_dict)
     
@@ -36,6 +44,14 @@ def actualizar_docente(db: Session, docente_id: int, docente_data: DocenteUpdate
         
     datos_actualizar = docente_data.model_dump(exclude_unset=True)
     
+    # Asegurar mayúsculas en nombre, apellidos y plaza
+    if "nombre" in datos_actualizar and datos_actualizar["nombre"]:
+        datos_actualizar["nombre"] = datos_actualizar["nombre"].upper()
+    if "apellidos" in datos_actualizar and datos_actualizar["apellidos"]:
+        datos_actualizar["apellidos"] = datos_actualizar["apellidos"].upper()
+    if "plaza" in datos_actualizar and datos_actualizar["plaza"]:
+        datos_actualizar["plaza"] = datos_actualizar["plaza"].upper()
+    
     if "areas_conocimiento_ids" in datos_actualizar:
         nuevos_ids = datos_actualizar.pop("areas_conocimiento_ids")
         nuevas_areas = db.query(AreaConocimiento).filter(AreaConocimiento.id.in_(nuevos_ids)).all()
@@ -53,6 +69,15 @@ def eliminar_docente(db: Session, docente_id: int):
     if not db_docente:
         return False
     
+    usuario_id = db_docente.usuario_id
     db.delete(db_docente)
+    
+    # Si tiene un usuario vinculado, eliminarlo en cascada para evitar usuarios huérfanos
+    if usuario_id:
+        from src.infrastructure.database.orm_models import Usuario
+        usuario = db.query(Usuario).filter(Usuario.id == usuario_id).first()
+        if usuario:
+            db.delete(usuario)
+            
     db.commit()
     return True

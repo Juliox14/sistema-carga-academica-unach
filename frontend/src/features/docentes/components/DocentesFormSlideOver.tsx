@@ -39,6 +39,7 @@ export default function DocenteFormSlideOver({ isOpen, docente, categoriasOption
       categoria_id: Number(formData.get('categoria_id')),
       hsm_personalizadas: formData.get('hsm_personalizadas') ? Number(formData.get('hsm_personalizadas')) : undefined,
       estatus: formData.get('estatus') as any,
+      turno: formData.get('turno') as any,
       areas_conocimiento_ids: areasIds,
     };
 
@@ -106,7 +107,19 @@ export default function DocenteFormSlideOver({ isOpen, docente, categoriasOption
 
             <FlatSelect name="categoria_id" label="Categoría de Contratación" defaultValue={docente ? String(docente.categoria_id) : ''} options={categoriasOptions} />
             
-            <FlatInput name="hsm_personalizadas" label="HSM Personalizadas (Opcional)" type="number" min="1" defaultValue={docente?.hsm_personalizadas || ''} placeholder="Solo si difiere de su categoría" />
+            <div className="grid grid-cols-2 gap-4">
+              <FlatSelect 
+                name="turno" 
+                label="Turno (Horario)" 
+                defaultValue={docente ? docente.turno : 'MIXTO'} 
+                options={[
+                  { value: 'MIXTO', label: 'Mixto (Cualquier horario)' },
+                  { value: 'MATUTINO', label: 'Matutino' }, 
+                  { value: 'VESPERTINO', label: 'Vespertino' }
+                ]} 
+              />
+              <FlatInput name="hsm_personalizadas" label="HSM Personalizadas (Opcional)" type="number" min="1" defaultValue={docente?.hsm_personalizadas || ''} placeholder="Diferente a categoría" />
+            </div>
 
             {/* Grid de Checkboxes para Áreas de Conocimiento */}
             <div className="pt-2">

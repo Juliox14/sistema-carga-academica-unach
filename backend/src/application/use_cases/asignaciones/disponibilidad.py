@@ -2,7 +2,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import and_
 from typing import Optional
 
-from src.infrastructure.database.orm_models import Docente, Materia, GrupoAbierto, AsignacionCarga
+from src.infrastructure.database.orm_models import Docente, Materia, GrupoAbierto, AsignacionCarga, EstatusMateria, EstadoAsignacion, Turno
 from src.application.use_cases.ciclos_service import obtener_ciclo_activo
 
 def obtener_materias_disponibles(db: Session, plan_id: int, docente_id: Optional[int] = None):
@@ -34,13 +34,13 @@ def obtener_materias_disponibles(db: Session, plan_id: int, docente_id: Optional
             GrupoAbierto, AsignacionCarga.grupo_asignado_id == GrupoAbierto.id
         ).filter(
             AsignacionCarga.ciclo_escolar_id == ciclo.id,
-            AsignacionCarga.motivo_descarga.isnot(None),
+            AsignacionCarga.estado_asignacion == EstadoAsignacion.DESCARGADA,
             AsignacionCarga.docente_temporal_id.is_(None),
             Materia.plan_estudios_id == plan_id
         )
 
         # Filtro de turno: Aplicar solo si tiene turno y NO es Mixto
-        if turno and turno.value != "Mixto":
+        if turno and turno != Turno.MIXTO:
             query = query.filter(GrupoAbierto.turno == turno)
 
         asignaciones_descargadas = query.all()
@@ -84,12 +84,12 @@ def obtener_materias_disponibles(db: Session, plan_id: int, docente_id: Optional
             )
         ).filter(
             Materia.plan_estudios_id == plan_id,
-            Materia.estatus == "Activa",
+            Materia.estatus == EstatusMateria.ACTIVA,
             asignadas_subq.c.materia_id.is_(None) # Equivalente a "NOT IN" (solo trae las libres)
         )
 
         # 3. Aplicamos el filtro de Turno
-        if turno and turno.value != "Mixto":
+        if turno and turno != Turno.MIXTO:
             query = query.filter(GrupoAbierto.turno == turno)
 
         # 4. Ejecutamos 1 sola vez

@@ -1,34 +1,47 @@
 import enum
-from sqlalchemy import Column, Integer, String, Boolean, ForeignKey, BigInteger, Text, Enum as SQLEnum, Table
+from sqlalchemy import Column, Integer, String, Boolean, ForeignKey, BigInteger, Text, Enum as SQLEnum, Table, DateTime
 from sqlalchemy.orm import declarative_base, relationship
 from sqlalchemy.orm import Mapped, mapped_column
 
 Base = declarative_base()
 
 class EstatusDocente(enum.Enum):
-    ACTIVO = "Activo"
-    INACTIVO = "Inactivo"
-    SABATICO = "Sabático"
-    LICENCIA = "Licencia"
+    ACTIVO = "ACTIVO"
+    INACTIVO = "INACTIVO"
+    SABATICO = "SABATICO"
+    LICENCIA = "LICENCIA"
 
 class EstatusMateria(enum.Enum):
-    ACTIVA = "Activa"
-    INACTIVA = "Inactiva"
+    ACTIVA = "ACTIVA"
+    INACTIVA = "INACTIVA"
 
 class Turno(enum.Enum):
-    MATUTINO = "Matutino"
-    VESPERTINO = "Vespertino"
-    MIXTO = "Mixto"
+    MATUTINO = "MATUTINO"
+    VESPERTINO = "VESPERTINO"
+    MIXTO = "MIXTO"
 
 class EstadoAsignacion(enum.Enum):
-    PENDIENTE = "Pendiente"
-    ASIGNADA = "Asignada"
-    DESCARGADA = "Descargada"
-        
+    PENDIENTE = "PENDIENTE"
+    ASIGNADA = "ASIGNADA"
+    DESCARGADA = "DESCARGADA"
+
 class TipoPeriodo(enum.Enum):
     SEMESTRAL = "SEMESTRAL"
     CUATRIMESTRAL = "CUATRIMESTRAL"
     MODULAR = "MODULAR"
+
+class TipoContratoOficio(enum.Enum):
+    PTC = "PTC"
+    PMT = "PMT"
+    PAS = "PAS"
+    PAT = "PAT"
+    PAE = "PAE"
+
+class EstadoOficio(enum.Enum):
+    EMITIDO = "EMITIDO"
+    LEIDO = "LEIDO"
+    FIRMADO = "FIRMADO"
+    RECHAZADO = "RECHAZADO"
 
 
 
@@ -59,6 +72,7 @@ class Usuario(Base):
     password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
     rol_id = Column(BigInteger, ForeignKey('roles.id'), nullable=False)
     activo: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    requiere_cambio_password = Column(Boolean, default=False, server_default="0", nullable=False)
 
     # Relaciones
     rol = relationship("Rol", back_populates="usuarios")
@@ -247,4 +261,51 @@ class ConfiguracionSistema(Base):
     nombre_descriptivo: Mapped[str] = mapped_column(String(150), nullable=False)
     tipo_dato: Mapped[str] = mapped_column(String(20), nullable=False)
     valor: Mapped[str] = mapped_column(String(255), nullable=False)
+
+
+class PlantillaOficio(Base):
+    __tablename__ = 'plantillas_oficios'
+
+    id: Mapped[BigInteger] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
+    nombre: Mapped[str] = mapped_column(String(100), nullable=False)
+    tipo_contrato: Mapped[TipoContratoOficio] = mapped_column(SQLEnum(TipoContratoOficio), nullable=False)
+    contenido_html: Mapped[str] = mapped_column(Text, nullable=False)
+    requiere_firma: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    es_activa: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+
+    # Campos estructurados para diseño membretado fijo UNACH
+    lugar_emision: Mapped[str | None] = mapped_column(String(150), nullable=True)
+    asunto: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    destinatarios: Mapped[str | None] = mapped_column(Text, nullable=True)
+    cuerpo_html: Mapped[str | None] = mapped_column(Text, nullable=True)
+    despedida: Mapped[str | None] = mapped_column(String(150), nullable=True)
+    remitente_nombre: Mapped[str | None] = mapped_column(String(150), nullable=True)
+    remitente_cargo: Mapped[str | None] = mapped_column(String(150), nullable=True)
+    con_copia_para: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+    # Relaciones
+    oficios_emitidos = relationship("OficioDocente", back_populates="plantilla")
+
+
+class OficioDocente(Base):
+    __tablename__ = 'oficios_docentes'
+
+    id: Mapped[BigInteger] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
+    docente_id: Mapped[BigInteger] = mapped_column(BigInteger, ForeignKey('docentes.id'), nullable=False)
+    ciclo_id: Mapped[BigInteger] = mapped_column(BigInteger, ForeignKey('ciclos_escolares.id'), nullable=False)
+    plantilla_id: Mapped[BigInteger] = mapped_column(BigInteger, ForeignKey('plantillas_oficios.id'), nullable=False)
+    estado: Mapped[EstadoOficio] = mapped_column(SQLEnum(EstadoOficio), default=EstadoOficio.EMITIDO, nullable=False)
+    numero_oficio: Mapped[str] = mapped_column(String(50), nullable=False, unique=True)
+    fecha_emision: Mapped[DateTime] = mapped_column(DateTime, nullable=False)
+    fecha_lectura: Mapped[DateTime | None] = mapped_column(DateTime, nullable=True)
+    fecha_firma: Mapped[DateTime | None] = mapped_column(DateTime, nullable=True)
+    ip_firma: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    hash_firma: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    observaciones_rechazo: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+    # Relaciones
+    docente = relationship("Docente")
+    ciclo_escolar = relationship("CicloEscolar")
+    plantilla = relationship("PlantillaOficio", back_populates="oficios_emitidos")
+
     
