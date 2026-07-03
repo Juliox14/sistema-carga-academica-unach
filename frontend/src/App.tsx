@@ -20,6 +20,22 @@ import ProgramasDashboard from './features/programas/ProgramasDashboard';
 import PlanesDashboard from './features/planesEstudio/PlanesDashboard';
 import UsuariosDashboard from './features/usuarios/UsuariosDashboard';
 
+// Import ForceChangePassword
+import ForceChangePassword from './features/auth/ForceChangePassword';
+
+// Import Oficios Components
+import PlantillasManager from './features/oficios/components/PlantillasManager';
+import AuditoriaOficios from './features/oficios/components/AuditoriaOficios';
+import DocenteOficioPortal from './features/oficios/components/DocenteOficioPortal';
+
+const RootRedirect = () => {
+  const { user } = useAuthStore();
+  if (user?.rol === 'DOCENTE') {
+    return <Navigate to="/oficios/firma" replace />;
+  }
+  return <Navigate to="/asignacion" replace />;
+};
+
 const router = createBrowserRouter([
   {
     path: '/login',
@@ -42,14 +58,14 @@ const router = createBrowserRouter([
   },
   {
     path: '/',
-    element: <ProtectedRoute allowedRoles={['SUPER_ADMIN', 'SECRETARIA_ACADEMICA', 'CAPTURISTA']} />,
+    element: <ProtectedRoute allowedRoles={['SUPER_ADMIN', 'SECRETARIA_ACADEMICA', 'CAPTURISTA', 'DOCENTE']} />,
     children: [
       {
         element: <MainLayout />,
         children: [
           {
             index: true,
-            element: <Navigate to="/asignacion" replace />,
+            element: <RootRedirect />,
           },
           // ─── RUTAS EXCLUSIVAS DE SUPER_ADMIN Y SECRETARIA_ACADEMICA ───
           {
@@ -70,6 +86,24 @@ const router = createBrowserRouter([
               {
                 path: 'docentes',
                 element: <DocentesDashboard userRole="SECRETARIA_ACADEMICA" />,
+              },
+              {
+                path: 'oficios/plantillas',
+                element: <PlantillasManager />,
+              },
+              {
+                path: 'oficios/auditoria',
+                element: <AuditoriaOficios />,
+              },
+            ],
+          },
+          // ─── RUTA EXCLUSIVA DE DOCENTES Y ROLES AUTENTICADOS ───
+          {
+            element: <ProtectedRoute allowedRoles={['DOCENTE']} />,
+            children: [
+              {
+                path: 'oficios/firma',
+                element: <DocenteOficioPortal />,
               },
             ],
           },
@@ -124,7 +158,7 @@ const router = createBrowserRouter([
 ]);
 
 export default function App() {
-  const { cargarPerfil, token } = useAuthStore();
+  const { cargarPerfil, token, user } = useAuthStore();
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -140,6 +174,16 @@ export default function App() {
       <div className="h-screen w-screen flex items-center justify-center bg-[#002d55]">
         <div className="animate-spin rounded-full h-10 w-10 border-4 border-t-transparent border-yellow-400"></div>
       </div>
+    );
+  }
+
+  // Interceptar si requiere cambio obligatorio de clave
+  if (user?.requiere_cambio_password) {
+    return (
+      <>
+        <Toaster />
+        <ForceChangePassword />
+      </>
     );
   }
 

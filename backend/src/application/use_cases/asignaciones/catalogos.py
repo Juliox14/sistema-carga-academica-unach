@@ -1,10 +1,10 @@
 from sqlalchemy.orm import Session
 from sqlalchemy import or_, and_
-from src.infrastructure.database.orm_models import Docente, PlanEstudios, OtraActividad, CategoriaDocente
+from src.infrastructure.database.orm_models import Docente, PlanEstudios, OtraActividad, CategoriaDocente, EstatusDocente
 
 def buscar_docentes(db: Session, categoria_id: int | None = None, query: str | None = None):
     """Devuelve la lista de docentes activos, filtrable por categoría y nombre."""
-    filtros = [Docente.estatus == "Activo"]
+    filtros = [Docente.estatus == EstatusDocente.ACTIVO]
     
     if categoria_id:
         filtros.append(Docente.categoria_id == categoria_id)

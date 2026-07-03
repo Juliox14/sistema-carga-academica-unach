@@ -78,8 +78,12 @@ from src.infrastructure.api.schemas.auth_schema import (
     RolResponse,
     CambiarRolRequest,
     CambiarPasswordPropiaRequest,
-    RestablecerPasswordRequest
+    RestablecerPasswordRequest,
+    UsuarioCreadoResponse
 )
+from src.application.utils.pdf_cifrado import generar_pdf_credenciales_protegido
+from src.infrastructure.api.schemas.docentes_schema import DocenteResponse
+from src.infrastructure.database.orm_models import Docente
 from src.application.use_cases import auth_service
 from src.infrastructure.security import create_access_token, get_current_user, require_roles
 from src.infrastructure.database.orm_models import Usuario
@@ -97,7 +101,7 @@ def get_logger(request: Request) -> LoggerPort:
     return logger
 
 
-@router.post("/registro", response_model=UsuarioResponse, status_code=status.HTTP_201_CREATED, dependencies=[Depends(require_roles(["SUPER_ADMIN"]))])
+@router.post("/registro", response_model=UsuarioCreadoResponse, status_code=status.HTTP_201_CREATED, dependencies=[Depends(require_roles(["SUPER_ADMIN"]))])
 def registrar(
     registro: UsuarioRegistro,
     request: Request,
@@ -112,13 +116,38 @@ def registrar(
             context={"email": registro.email_institucional},
             trace_id=trace_id,
         )
-        usuario = auth_service.registrar_usuario(db, registro)
+        usuario, password_usada = auth_service.registrar_usuario(db, registro)
+        
+        # Simulación de correo con PDF cifrado si es un docente vinculado
+        pdf_simulado = False
+        if registro.clave_rol.upper() == "DOCENTE" and registro.docente_id:
+            docente = db.query(Docente).filter(Docente.id == registro.docente_id).first()
+            if docente:
+                # Generación del PDF protegido (cifrado con plaza)
+                pdf_bytes = generar_pdf_credenciales_protegido(
+                    registro.email_institucional, password_usada, docente.plaza
+                )
+                pdf_simulado = True
+                print("======================================================================")
+                print("SIMULACIÓN DE ENVÍO DE CORREO INSTITUCIONAL PROTEGIDO - SIPAD")
+                print(f"Para: {registro.email_institucional}")
+                print("Asunto: Bienvenido a SIPAD - Credenciales de Acceso")
+                print("Mensaje: Se adjunta tu oficio de credenciales cifrado.")
+                print(f"Contraseña temporal de primer ingreso: {password_usada}")
+                print(f"Contraseña de apertura del PDF: Plaza del docente ({docente.plaza})")
+                print(f"Tamaño del adjunto PDF cifrado: {len(pdf_bytes)} bytes")
+                print("======================================================================")
+
         logger.info(
             f"Usuario registrado exitosamente: {usuario.email_institucional}",
             context={"usuario_id": usuario.id},
             trace_id=trace_id,
         )
-        return usuario
+        return {
+            "usuario": usuario,
+            "password_temporal": password_usada,
+            "pdf_adjunto_cifrado_simulado": pdf_simulado
+        }
     except ValueError as e:
         logger.warning(
             f"Error al registrar usuario: {str(e)}",
@@ -129,6 +158,12 @@ def registrar(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(e)
         )
+
+
+@router.get("/usuarios/docentes-sin-usuario", response_model=List[DocenteResponse], dependencies=[Depends(require_roles(["SUPER_ADMIN"]))])
+def listar_docentes_sin_usuario(db: Session = Depends(get_db)):
+    """Retorna la lista de docentes activos que no tienen cuenta de usuario vinculada."""
+    return auth_service.obtener_docentes_sin_usuario(db)
 
 
 @router.post("/login", response_model=Token)

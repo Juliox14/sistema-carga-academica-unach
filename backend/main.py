@@ -19,6 +19,7 @@ from src.infrastructure.api.routers import materias_router
 from src.infrastructure.api.routers import planes_estudios_router
 from src.infrastructure.api.routers import programas_router
 from src.infrastructure.api.routers import auth_router
+from src.infrastructure.api.routers import oficios_router
 from src.infrastructure.config.logging_config import setup_logging_collection
 from src.infrastructure.adapters.output.logging import (
     ConsoleLoggerAdapter,
@@ -60,8 +61,8 @@ def _init_logging(app_instance) -> None:
         app_instance.state.mongo_client = mongo_client
 
     except Exception as err:
-        print(f"Error initializing logging: {err}")
-        raise
+        print(f"Error initializing MongoDB logging: {err}. Falling back to ConsoleLoggerAdapter.")
+        app_instance.state.logger = ConsoleLoggerAdapter()
 
 
 # Lifespan context manager
@@ -106,6 +107,7 @@ def get_logger() -> LoggerPort:
 
 # Routers
 app.include_router(auth_router.router)
+app.include_router(oficios_router.router)
 app.include_router(actividades_router.router)
 app.include_router(apertura_router.router)
 app.include_router(areas_router.router)

@@ -14,6 +14,9 @@ def _verificar_limite_hsm(db: Session, docente_id: int, nuevas_horas: int):
     
     permite_excedentes = ConfiguracionService.obtener("PERMITE_HORAS_EXCEDENTES", False)
     
+    if docente["categoria"] == "PAE":
+        return  # Los docentes PAE no tienen límite de horas
+    
     if permite_excedentes:
         margen = ConfiguracionService.obtener("MAX_HORAS_EXCEDENTES", 0)
         limite += margen

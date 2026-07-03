@@ -12,6 +12,7 @@ from src.infrastructure.api.routers import materias_router
 from src.infrastructure.api.routers import planes_estudios_router
 from src.infrastructure.api.routers import programas_router
 from src.infrastructure.api.routers import auth_router
+from src.infrastructure.api.routers import oficios_router
 from src.infrastructure.security import require_roles
 
 app = FastAPI(title="API SIPAD - Carga Académica")
@@ -33,6 +34,7 @@ app.include_router(apertura_router.router, dependencies=[Depends(require_roles(C
 app.include_router(areas_router.router, dependencies=[Depends(require_roles(CATALOG_ROLES))])
 app.include_router(asignaciones_router.router, dependencies=[Depends(require_roles(CATALOG_ROLES))])
 app.include_router(auth_router.router)
+app.include_router(oficios_router.router)
 app.include_router(categorias_router.router, dependencies=[Depends(require_roles(CATALOG_ROLES))])
 app.include_router(ciclos_router.router, dependencies=[Depends(require_roles(CATALOG_ROLES))])
 app.include_router(configuracion_router.router, dependencies=[Depends(require_roles(["SUPER_ADMIN", "SECRETARIA_ACADEMICA"]))])

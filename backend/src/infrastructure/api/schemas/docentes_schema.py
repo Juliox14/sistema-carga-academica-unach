@@ -1,6 +1,6 @@
 from pydantic import BaseModel, ConfigDict
 from typing import List, Optional
-from src.infrastructure.database.orm_models import EstatusDocente
+from src.infrastructure.database.orm_models import EstatusDocente, Turno
 
 class AreaConocimientoResponse(BaseModel):
     id: int
@@ -15,6 +15,7 @@ class DocenteBase(BaseModel):
     hsm_personalizadas: Optional[int] = None
     estatus: EstatusDocente = EstatusDocente.ACTIVO
     usuario_id: Optional[int] = None
+    turno: Turno = Turno.MIXTO
 
 class DocenteCreate(DocenteBase):
     areas_conocimiento_ids: List[int] = []
@@ -27,6 +28,7 @@ class DocenteUpdate(BaseModel):
     hsm_personalizadas: Optional[int] = None
     estatus: Optional[EstatusDocente] = None
     usuario_id: Optional[int] = None
+    turno: Optional[Turno] = None
     
     areas_conocimiento_ids: Optional[List[int]] = None
 

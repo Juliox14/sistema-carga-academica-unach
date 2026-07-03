@@ -34,8 +34,6 @@ export interface MateriaDisponibleDTO {
   periodo: number;
   grupo: string;
   hsm: number;
-  // Nota: Si implementas la vista especial para Eventuales, 
-  // agrega estos campos a tu Pydantic y descoméntalos aquí:
   es_cobertura?: boolean;
   titular_original?: string;
 }
@@ -120,4 +118,4 @@ export interface DocenteIncompletoResumen {
 export interface ResumenCargaResponse {
   cobertura: CoberturaTipoResumen[];
   docentes_incompletos: DocenteIncompletoResumen[];
-}
+}

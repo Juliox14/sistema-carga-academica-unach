@@ -2,7 +2,7 @@ import { useState } from 'react';
 import {
   Building2, ChevronRight, LayoutDashboard, ClipboardList, Layers,
   BookOpen, FileText, Library, Users, BarChart2, Bell, Settings,
-  PlayCircle, Calendar, Briefcase, Activity, Shield
+  PlayCircle, Calendar, Briefcase, Activity, Shield, Award, Eye
 } from 'lucide-react';
 import SidebarHeader from './layout/SidebarHeader';
 import UserProfileCard from './layout/UserProfileCard';
@@ -15,6 +15,20 @@ const navItems = [
   // ─── PROCESOS OPERATIVOS ───
   { label: 'Apertura de Grupos', icon: PlayCircle, path: '/aperturas' },
   { label: 'Asignación Académica', icon: ClipboardList, path: '/asignacion' },
+
+  // ─── OFICIOS Y FIRMAS ───
+  { label: 'Mi Carga y Firma', icon: Award, path: '/oficios/firma', role: 'DOCENTE' },
+
+  // ─── REPORTES Y AUDITORÍA ───
+  {
+    label: 'Reportes',
+    icon: BarChart2,
+    role: 'SECRETARIA_ACADEMICA',
+    children: [
+      { label: 'Plantillas de Oficios', icon: FileText, path: '/oficios/plantillas' },
+      { label: 'Auditoría de Oficios', icon: Eye, path: '/oficios/auditoria' },
+    ]
+  },
 
   // ─── GESTIÓN ───
   { label: 'Gestión Docente', icon: Users, path: '/docentes' },
@@ -34,8 +48,6 @@ const navItems = [
       { label: 'Otras Actividades', icon: Activity, path: '/catalogos/actividades' },
     ],
   },
-
-  { label: 'Reportes', icon: BarChart2, path: '/reportes' },
 ];
 
 const bottomItems = [
@@ -50,18 +62,37 @@ export default function Sidebar() {
 
   // Filtrar navItems
   const filteredNavItems = navItems.filter(item => {
-    if ('role' in item && item.role === 'SUPER_ADMIN' && userRole !== 'SUPER_ADMIN') {
+    // Mi Carga y Firma solo es para Docentes
+    if (item.label === 'Mi Carga y Firma' && userRole !== 'DOCENTE') {
       return false;
     }
+
+    if (item.role) {
+      if (item.role === 'SUPER_ADMIN' && userRole !== 'SUPER_ADMIN') {
+        return false;
+      }
+      if (item.role === 'SECRETARIA_ACADEMICA' && userRole !== 'SECRETARIA_ACADEMICA' && userRole !== 'SUPER_ADMIN') {
+        return false;
+      }
+      if (item.role === 'DOCENTE' && userRole !== 'DOCENTE' && userRole !== 'SUPER_ADMIN' && userRole !== 'SECRETARIA_ACADEMICA') {
+        return false;
+      }
+    }
+    
+    if (userRole === 'DOCENTE') {
+      return item.label === 'Inicio' || item.label === 'Mi Carga y Firma';
+    }
+
     if (userRole === 'CAPTURISTA') {
       return item.label === 'Inicio' || item.label === 'Catálogos';
     }
+
     return true;
   });
 
   // Filtrar bottomItems
   const filteredBottomItems = bottomItems.filter(item => {
-    if (userRole === 'CAPTURISTA') {
+    if (userRole === 'CAPTURISTA' || userRole === 'DOCENTE') {
       return item.label !== 'Configuración';
     }
     return true;

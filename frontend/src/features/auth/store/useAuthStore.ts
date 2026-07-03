@@ -1,10 +1,10 @@
 import { create } from 'zustand';
 import api from '../../../services/api';
-import type { Token } from '../../../types/asignaciones'; // We can define a simplified type here or reuse a general one.
 
 interface UserProfile {
   email: string;
   rol: string;
+  requiere_cambio_password: boolean;
 }
 
 interface AuthState {
@@ -31,14 +31,11 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         password: password
       });
 
-      const { access_token, rol } = response.data;
+      const { access_token } = response.data;
       localStorage.setItem('sipad_token', access_token);
 
-      set({
-        token: access_token,
-        user: { email, rol },
-        isLoading: false
-      });
+      set({ token: access_token });
+      await get().cargarPerfil();
     } catch (error) {
       set({ isLoading: false });
       throw error;
@@ -57,10 +54,14 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     set({ isLoading: true });
     try {
       const response = await api.get('/auth/me');
-      const { email_institucional, rol_clave } = response.data;
+      const { email_institucional, rol_clave, requiere_cambio_password } = response.data;
       
       set({
-        user: { email: email_institucional, rol: rol_clave },
+        user: { 
+          email: email_institucional, 
+          rol: rol_clave, 
+          requiere_cambio_password: requiere_cambio_password 
+        },
         isLoading: false
       });
       return true;
@@ -79,7 +80,17 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         password_actual: passwordActual,
         nueva_password: nuevaPassword
       });
-      set({ isLoading: false });
+      
+      // Actualizar localmente requiere_cambio_password a false
+      set((state) => {
+        if (state.user) {
+          return {
+            user: { ...state.user, requiere_cambio_password: false },
+            isLoading: false
+          };
+        }
+        return { isLoading: false };
+      });
     } catch (error) {
       set({ isLoading: false });
       throw error;
