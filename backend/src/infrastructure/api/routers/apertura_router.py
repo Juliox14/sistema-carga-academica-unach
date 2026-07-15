@@ -24,3 +24,14 @@ def ejecutar_apertura(datos: EjecutarAperturaRequest, db: Session = Depends(get_
 @router.get("/abiertos", response_model=List[GrupoAbiertoResponse])
 def listar_grupos(db: Session = Depends(get_db)):
     return apertura_service.listar_grupos_abiertos(db)
+
+@router.delete("/grupos-abiertos/{grupo_id}")
+def eliminar_grupo_abierto(grupo_id: int, db: Session = Depends(get_db)):
+    """Elimina un grupo abierto y todas sus asignaciones y horarios asociados en cascada."""
+    try:
+        apertura_service.eliminar_grupo_abierto(db, grupo_id)
+        return {"mensaje": "Grupo abierto eliminado exitosamente."}
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error interno: {str(e)}")

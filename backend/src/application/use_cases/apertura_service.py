@@ -48,12 +48,7 @@ def obtener_sugerencias_apertura(db: Session, plan_id: int):
                     "turno": gp.turno.name if hasattr(gp.turno, 'name') else str(gp.turno)
                 })
                 
-        # Si no hay sugerencias históricas, proveer un grupo A por defecto
-        if not sugerencias:
-            sugerencias.append({
-                "grupo": "A",
-                "turno": "MATUTINO"
-            })
+        
             
         result_periodos.append({
             "numero_periodo": num_periodo,
@@ -96,7 +91,7 @@ def ejecutar_apertura_ciclo(db: Session, datos: EjecutarAperturaRequest):
     for (num_p, grp_letra), turno_str in solicitados.items():
         if (num_p, grp_letra) in existentes_dict:
             eg = existentes_dict[(num_p, grp_letra)]
-            eg.turno = turno_str
+            eg.turno = turno_str #type: ignore
         else:
             nuevo_grupo = GrupoAbierto(
                 ciclo_escolar_id=ciclo_actual.id,
@@ -131,3 +126,28 @@ def listar_grupos_abiertos(db: Session):
             "turno": g.turno.name if hasattr(g.turno, 'name') else str(g.turno)
         })
     return res
+
+def eliminar_grupo_abierto(db: Session, grupo_id: int):
+    ciclo_actual = db.query(CicloEscolar).filter(CicloEscolar.activo == True).first()
+    if not ciclo_actual:
+        raise ValueError("No hay un ciclo escolar activo.")
+
+    grupo = db.query(GrupoAbierto).filter(
+        GrupoAbierto.id == grupo_id,
+        GrupoAbierto.ciclo_escolar_id == ciclo_actual.id
+    ).first()
+
+    if not grupo:
+        raise ValueError("El grupo abierto no existe o no pertenece al ciclo escolar activo.")
+
+    from src.infrastructure.database.orm_models import AsignacionCarga
+    asignaciones_grupo = db.query(AsignacionCarga).filter(
+        AsignacionCarga.grupo_asignado_id == grupo.id
+    ).all()
+
+    for asignacion in asignaciones_grupo:
+        db.delete(asignacion)
+
+    db.delete(grupo)
+    db.commit()
+    return True

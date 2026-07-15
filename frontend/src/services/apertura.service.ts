@@ -45,5 +45,10 @@ export const aperturaService = {
   obtenerAbiertos: async (): Promise<GrupoAbiertoResponse[]> => {
     const response = await api.get<GrupoAbiertoResponse[]>('/aperturas/abiertos');
     return response.data;
+  },
+
+  eliminarGrupoAbierto: async (grupoId: number) => {
+    const response = await api.delete(`/aperturas/grupos-abiertos/${grupoId}`);
+    return response.data;
   }
 };
