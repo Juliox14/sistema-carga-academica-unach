@@ -17,5 +17,13 @@ export const ciclosService = {
   eliminar: async (id: number) => {
     const response = await api.delete(`/ciclos/${id}`);
     return response.data;
+  },
+  finalizarCarga: async () => {
+    const response = await api.post<CicloEscolar>('/ciclos/finalizar-carga');
+    return response.data;
+  },
+  desfinalizarCarga: async () => {
+    const response = await api.post<CicloEscolar>('/ciclos/desfinalizar-carga');
+    return response.data;
   }
 };

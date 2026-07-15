@@ -9,6 +9,7 @@ export interface MateriaAsignadaDTO {
   hsm: number;
   motivo_descarga: string | null;
   es_temporal: boolean;
+  programa_educativo?: string;
   // Nota: Si en el futuro quieres mostrar quién cubre la descarga, 
   // tendrás que agregarlo a tu backend y descomentar la siguiente línea:
   // profesor_cubre?: string | null; 
@@ -67,6 +68,7 @@ export interface DocenteFiltrado {
   nombre_completo: string;
   categoria: string;
   siglas_categoria: string;
+  es_prioritario?: boolean;
 }
 
 export interface CatalogosBaseResponse {

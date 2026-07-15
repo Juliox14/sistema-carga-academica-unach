@@ -19,5 +19,10 @@ export const asignacionesService = {
   obtenerResumenCarga: async () => {
     const response = await api.get<ResumenCargaResponse>('/asignaciones/resumen-carga');
     return response.data;
+  },
+
+  obtenerVacantes: async () => {
+    const response = await api.get<any[]>('/asignaciones/vacantes');
+    return response.data;
   }
 };

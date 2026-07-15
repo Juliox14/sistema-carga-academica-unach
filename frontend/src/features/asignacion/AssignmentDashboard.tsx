@@ -1,5 +1,8 @@
+import { useEffect } from 'react';
 import { DragDropContext } from '@hello-pangea/dnd';
 import type { DropResult } from '@hello-pangea/dnd';
+import toast from 'react-hot-toast';
+import { AlertTriangle } from 'lucide-react';
 import AssignmentHeader from './components/AssignmentHeader';
 import AcademicLoadSummary from './components/AcademicLoadSummary';
 import TeacherStatsBar from './components/TeacherStatsBar';
@@ -10,12 +13,21 @@ import AssignedContent from './components/AssignedContent';
 import { useAsignacionStore } from './store/useAsignacionStore';
 
 export default function AssignmentDashboard() {
-  const { activeTab, vincularMateria, asignarOtraActividad } = useAsignacionStore();
+  const { activeTab, vincularMateria, asignarOtraActividad, fetchCicloActivo, cicloActivo } = useAsignacionStore();
+
+  useEffect(() => {
+    fetchCicloActivo();
+  }, [fetchCicloActivo]);
 
   const handleDragEnd = async (result: DropResult) => {
     const { destination, draggableId } = result;
 
     if (!destination) return;
+
+    if (cicloActivo?.carga_finalizada) {
+      toast.error('La carga académica está finalizada. No se pueden realizar modificaciones.');
+      return;
+    }
 
     if (destination.droppableId === 'tablero-carga') {
       const { selectedMateriaIds, clearSelection } = useAsignacionStore.getState();
@@ -53,6 +65,18 @@ export default function AssignmentDashboard() {
     <DragDropContext onDragEnd={handleDragEnd}>
       <main className="flex-1 overflow-y-auto p-8 bg-gray-50/30">
         <div className="max-w-7xl mx-auto space-y-6">
+
+          {cicloActivo?.carga_finalizada && (
+            <div className="bg-amber-50 border-l-4 border-amber-500 text-amber-900 p-4 rounded-r-lg shadow-sm flex items-center justify-between">
+              <div className="flex gap-3 items-center">
+                <AlertTriangle className="text-amber-600 shrink-0" size={20} />
+                <div>
+                  <p className="text-sm font-bold">Fase de Carga Académica Finalizada</p>
+                  <p className="text-xs text-amber-700">Las asignaciones de materias y actividades se encuentran congeladas. Proceda al módulo de Horarios.</p>
+                </div>
+              </div>
+            </div>
+          )}
 
           <AcademicLoadSummary />
 

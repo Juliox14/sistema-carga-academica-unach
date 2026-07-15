@@ -1,4 +1,5 @@
 import type { AreaConocimiento } from '../types/areas';
+import type { EstatusDocente } from './estatus';
 
 export interface Docente {
   id?: number;
@@ -7,10 +8,11 @@ export interface Docente {
   plaza: string;
   categoria_id: number;
   hsm_personalizadas?: number;
-  estatus: 'ACTIVO' | 'INACTIVO' | 'SABATICO' | 'PERMISO';
+  estatus_id: number;
+  estatus?: EstatusDocente;
+  correo_institucional?: string;
+  telefono?: string;
   turno: 'MATUTINO' | 'VESPERTINO' | 'MIXTO';
-  // areas_conocimiento viene poblado desde FastAPI en los GET
   areas_conocimiento?: AreaConocimiento[]; 
-  // areas_conocimiento_ids lo usamos nosotros para enviar en POST/PUT
   areas_conocimiento_ids?: number[]; 
 }

@@ -2,7 +2,7 @@ import { useState } from 'react';
 import {
   Building2, ChevronRight, LayoutDashboard, ClipboardList, Layers,
   BookOpen, FileText, Library, Users, BarChart2, Bell, Settings,
-  PlayCircle, Calendar, Briefcase, Activity, Shield, Award, Eye
+  PlayCircle, Calendar, Briefcase, Activity, Shield, Award, Eye, Sliders
 } from 'lucide-react';
 import SidebarHeader from './layout/SidebarHeader';
 import UserProfileCard from './layout/UserProfileCard';
@@ -15,9 +15,11 @@ const navItems = [
   // ─── PROCESOS OPERATIVOS ───
   { label: 'Apertura de Grupos', icon: PlayCircle, path: '/aperturas' },
   { label: 'Asignación Académica', icon: ClipboardList, path: '/asignacion' },
+  { label: 'Creación de Horarios', icon: Calendar, path: '/horarios', role: 'SECRETARIA_ACADEMICA' },
 
   // ─── OFICIOS Y FIRMAS ───
   { label: 'Mi Carga y Firma', icon: Award, path: '/oficios/firma', role: 'DOCENTE' },
+  { label: 'Mis Preferencias', icon: Sliders, path: '/preferencias', role: 'DOCENTE' },
 
   // ─── REPORTES Y AUDITORÍA ───
   {
@@ -27,6 +29,7 @@ const navItems = [
     children: [
       { label: 'Plantillas de Oficios', icon: FileText, path: '/oficios/plantillas' },
       { label: 'Auditoría de Oficios', icon: Eye, path: '/oficios/auditoria' },
+      { label: 'Horarios (PAD)', icon: Calendar, path: '/reportes/horarios' },
     ]
   },
 
@@ -62,10 +65,16 @@ export default function Sidebar() {
 
   // Filtrar navItems
   const filteredNavItems = navItems.filter(item => {
-    // Mi Carga y Firma solo es para Docentes
+    // Mi Carga y Firma, y Mis Preferencias solo es para Docentes
     if (item.label === 'Mi Carga y Firma' && userRole !== 'DOCENTE') {
       return false;
     }
+
+    if (item.label === 'Mis Preferencias' && userRole !== 'DOCENTE') {
+      return false;
+    }
+    
+
 
     if (item.role) {
       if (item.role === 'SUPER_ADMIN' && userRole !== 'SUPER_ADMIN') {
@@ -80,7 +89,7 @@ export default function Sidebar() {
     }
     
     if (userRole === 'DOCENTE') {
-      return item.label === 'Inicio' || item.label === 'Mi Carga y Firma';
+      return item.label === 'Inicio' || item.label === 'Mi Carga y Firma' || item.label === 'Mis Preferencias';
     }
 
     if (userRole === 'CAPTURISTA') {
@@ -109,7 +118,7 @@ export default function Sidebar() {
       </button>
 
       <aside className="relative flex flex-col h-full w-full font-sans select-none overflow-hidden"
-        style={{ background: '#0038C3', boxShadow: '4px 0 24px rgba(6,15,92,0.35)' }}>
+        style={{ background: '#002582', boxShadow: '4px 0 24px rgba(6,15,92,0.35)' }}>
 
         <SidebarHeader collapsed={collapsed} />
 

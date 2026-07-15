@@ -1,27 +1,29 @@
 import { useEffect, useState, useRef, useMemo } from 'react';
 import { Search, ChevronDown, ChevronUp } from 'lucide-react';
 import { asignacionesService } from '../../../services/asignaciones.service';
-import type { PlanEstudio, CategoriaDocente, DocenteFiltrado } from '../../../types/asignaciones';
+import type { PlanEstudio, DocenteFiltrado } from '../../../types/asignaciones';
 import { useAsignacionStore } from '../store/useAsignacionStore';
 
 export default function AssignmentHeader() {
-  const { 
-    docenteSeleccionadoId, 
+  const {
+    docenteSeleccionadoId,
     nombreDocente,
-    setDocente, 
-    setPlanEstudio, 
+    setDocente,
+    setPlanEstudio,
     setActividadesDisponibles,
     selectedCategoriaId,
     setSelectedCategoriaId,
     categoriasDocentes,
-    setCategoriasDocentes
+    setCategoriasDocentes,
   } = useAsignacionStore();
+
 
   const [planes, setPlanes] = useState<PlanEstudio[]>([]);
   const [docentes, setDocentes] = useState<DocenteFiltrado[]>([]);
 
   const [selectedPlan, setSelectedPlan] = useState<number | ''>('');
   const [selectedDocente, setSelectedDocente] = useState<number | ''>('');
+  const [soloPrioritarios, setSoloPrioritarios] = useState(false);
 
   // Sincronizar selección de docente externa
   useEffect(() => {
@@ -56,7 +58,6 @@ export default function AssignmentHeader() {
   useEffect(() => {
     const cargarDocentes = async () => {
       try {
-        // Al backend solo le pedimos que filtre por categoría (PTC, PMT, etc.)
         const data = await asignacionesService.obtenerDocentesFiltrados(selectedCategoriaId, "");
         setDocentes(data || []);
 
@@ -81,20 +82,21 @@ export default function AssignmentHeader() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // 4. Filtrado local ultra-rápido por texto
+  // 4. Filtrado local ultra-rápido por texto y prioridad
   const filteredDocentes = useMemo(() => {
-    if (!searchQuery) return docentes;
-    return docentes.filter(d => 
+    let list = docentes;
+    if (soloPrioritarios) {
+      list = list.filter(d => d.es_prioritario);
+    }
+    if (!searchQuery) return list;
+    return list.filter(d =>
       d.nombre_completo.toLowerCase().includes(searchQuery.toLowerCase())
     );
-  }, [docentes, searchQuery]);
-
-  // Obtenemos el objeto completo del docente seleccionado para mostrar su nombre en el botón
-  const docenteSeleccionadoObj = docentes.find(d => d.id === selectedDocente);
+  }, [docentes, searchQuery, soloPrioritarios]);
 
   return (
-    <section className="bg-white p-5 border border-gray-200 flex flex-wrap gap-6 items-center justify-between shadow-sm">
-      <div className="flex items-center gap-6">
+    <section className="bg-white p-5 border w-full border-gray-200 flex flex-wrap gap-6 items-center justify-between shadow-sm">
+      <div className="flex flex-wrap items-center gap-6">
 
         {/* Selector de Plan de Estudios */}
         <div className="relative group">
@@ -105,7 +107,7 @@ export default function AssignmentHeader() {
               setSelectedPlan(val === '' ? '' : Number(val));
               if (val !== '') setPlanEstudio(Number(val));
             }}
-            className="border-b-2 border-gray-300 bg-transparent py-1 pr-8 focus:outline-none focus:border-[#002d55] text-sm text-gray-700 font-medium cursor-pointer appearance-none min-w-[150px]"
+            className="border-b-2 border-gray-300 bg-transparent py-1 pr-8 focus:outline-none focus:border-[#002d55] text-sm text-gray-700 font-medium cursor-pointer appearance-none min-w-37.5"
           >
             <option value="" disabled>Seleccione un Plan...</option>
             {planes.map((p) => (
@@ -139,19 +141,31 @@ export default function AssignmentHeader() {
             </label>
           ))}
         </div>
+
+        {/* Filtro Solo Prioritarios */}
+        <div className="flex items-center gap-1.5 text-sm border-l border-gray-300 pl-6 text-gray-600">
+          <label className="flex items-center gap-1.5 cursor-pointer hover:text-[#002d55] transition-colors font-medium">
+            <input
+              type="checkbox"
+              checked={soloPrioritarios}
+              onChange={(e) => setSoloPrioritarios(e.target.checked)}
+              className="accent-[#002d55] h-4 w-4 rounded-sm border-gray-300"
+            /> Solo Prioritarios
+          </label>
+        </div>
       </div>
 
       {/* --- CUSTOM SELECT TIPO SIPAD --- */}
-      <div ref={dropdownRef} className="grow max-w-md relative">
-        
+      <div ref={dropdownRef} className="w-75 relative">
+
         {/* Botón que abre el menú (Se ve como un select) */}
-        <div 
+        <div
           onClick={() => setIsDropdownOpen(!isDropdownOpen)}
           className="w-full border-b-2 border-[#002d55] px-3 py-2 text-sm font-semibold text-[#002d55] bg-teal-50/50 flex justify-between items-center cursor-pointer hover:bg-teal-50 transition-colors"
         >
           <span>
-            {docenteSeleccionadoId && nombreDocente 
-              ? nombreDocente 
+            {docenteSeleccionadoId && nombreDocente
+              ? nombreDocente
               : 'Seleccione a un docente'}
           </span>
           {isDropdownOpen ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
@@ -160,14 +174,14 @@ export default function AssignmentHeader() {
         {/* Menú Desplegable con Input Integrado */}
         {isDropdownOpen && (
           <div className="absolute top-full left-0 w-full mt-1 bg-white border border-gray-200 shadow-xl z-50 rounded-b-md overflow-hidden">
-            
+
             {/* Input de Búsqueda */}
             <div className="p-2 border-b border-gray-200 bg-gray-50">
               <div className="relative">
                 <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-blue-500" />
                 <input
                   type="text"
-                  autoFocus // Hace focus automáticamente al abrir el menú
+                  autoFocus
                   placeholder="Buscar docente..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
@@ -186,15 +200,14 @@ export default function AssignmentHeader() {
                     key={docente.id}
                     onClick={() => {
                       setSelectedDocente(docente.id);
-                      setDocente(docente.id); // Dispara Zustand
-                      setIsDropdownOpen(false); // Cierra el menú
-                      setSearchQuery(''); // Limpia la búsqueda para la próxima vez
+                      setDocente(docente.id);
+                      setIsDropdownOpen(false);
+                      setSearchQuery('');
                     }}
-                    className={`px-4 py-2 text-sm cursor-pointer transition-colors ${
-                      selectedDocente === docente.id
-                        ? 'bg-[#007bff] text-white font-medium' // Azul tipo SIPAD
-                        : 'text-gray-700 hover:bg-[#007bff] hover:text-white'
-                    }`}
+                    className={`px-4 py-2 text-sm cursor-pointer transition-colors ${selectedDocente === docente.id
+                      ? 'bg-[#007bff] text-white font-medium'
+                      : 'text-gray-700 hover:bg-[#007bff] hover:text-white'
+                      }`}
                   >
                     {docente.nombre_completo}
                   </li>
@@ -204,7 +217,6 @@ export default function AssignmentHeader() {
           </div>
         )}
       </div>
-
     </section>
   );
 }

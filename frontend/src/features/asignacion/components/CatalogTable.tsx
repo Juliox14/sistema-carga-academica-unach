@@ -14,10 +14,16 @@ export default function CatalogTable() {
     toggleMateriaSelection 
   } = useAsignacionStore();
 
+  const [searchQuery, setSearchQuery] = useState('');
   const [sortConfig, setSortConfig] = useState<{ key: SortKey; direction: 'asc' | 'desc' }>({
     key: 'periodo',
     direction: 'asc'
   });
+
+  // Limpiar el buscador al cambiar de pestaña
+  useMemo(() => {
+    setSearchQuery('');
+  }, [activeTab]);
 
   const handleSort = (key: SortKey) => {
     setSortConfig(prev => ({
@@ -26,8 +32,18 @@ export default function CatalogTable() {
     }));
   };
 
+  const filteredMaterias = useMemo(() => {
+    if (!searchQuery.trim()) return materiasDisponibles;
+    const query = searchQuery.toLowerCase();
+    return materiasDisponibles.filter(m => 
+      m.asignatura.toLowerCase().includes(query) ||
+      String(m.periodo).includes(query) ||
+      m.grupo.toLowerCase().includes(query)
+    );
+  }, [materiasDisponibles, searchQuery]);
+
   const sortedMaterias = useMemo(() => {
-    return [...materiasDisponibles].sort((a, b) => {
+    return [...filteredMaterias].sort((a, b) => {
       let aValue = a[sortConfig.key];
       let bValue = b[sortConfig.key];
 
@@ -42,7 +58,15 @@ export default function CatalogTable() {
       if (result === 0) return a.grupo.localeCompare(b.grupo);
       return result;
     });
-  }, [materiasDisponibles, sortConfig]);
+  }, [filteredMaterias, sortConfig]);
+
+  const filteredActividades = useMemo(() => {
+    if (!searchQuery.trim()) return actividadesDisponibles;
+    const query = searchQuery.toLowerCase();
+    return actividadesDisponibles.filter(a => 
+      a.nombre.toLowerCase().includes(query)
+    );
+  }, [actividadesDisponibles, searchQuery]);
 
   const renderSortIcon = (key: SortKey) => {
     if (sortConfig.key !== key) return <ArrowUpDown size={12} className="opacity-0 group-hover:opacity-40" />;
@@ -57,7 +81,13 @@ export default function CatalogTable() {
         </h3>
         <div className="relative">
           <Search size={14} className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-400" />
-          <input type="text" placeholder="Buscar..." className="border border-gray-300 rounded px-7 py-1 text-xs focus:outline-none focus:border-[#002d55]" />
+          <input 
+            type="text" 
+            placeholder="Buscar..." 
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="border border-gray-300 rounded px-7 py-1 text-xs focus:outline-none focus:border-[#002d55]" 
+          />
         </div>
       </div>
 
@@ -154,7 +184,7 @@ export default function CatalogTable() {
                   ref={provided.innerRef}
                   {...provided.droppableProps}
                 >
-                  {actividadesDisponibles.map((a, index) => {
+                  {filteredActividades.map((a, index) => {
                     const dragId = `actividad-${a.id}-${a.hsm}`;
                     return (
                       <Draggable key={dragId} draggableId={dragId} index={index}>

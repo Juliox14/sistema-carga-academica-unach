@@ -1,11 +1,32 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { BookCopy, BrainCircuit, CalendarCheck2, ChevronDown, ChevronUp, GripVertical, Scale, Sparkles, Star, University } from 'lucide-react';
 import { useAsignacionStore } from '../store/useAsignacionStore';
 import { Droppable, Draggable } from '@hello-pangea/dnd';
 import type { MateriaSugeridaDTO } from '../../../types/asignaciones';
 
+interface VarianteGrupo {
+  materia_id: number;
+  grupo_abierto_id: number;
+  grupo: string;
+  score_total: number;
+  desglose: any;
+}
 
-function SuggestionCard({ sugerencia, dragHandleProps }: { sugerencia: MateriaSugeridaDTO, dragHandleProps: any }) {
+interface SuggestionCardProps {
+  sugerencia: MateriaSugeridaDTO;
+  dragHandleProps: any;
+  variantes: VarianteGrupo[];
+  selectedIdx: number;
+  setSelectedIdx: (idx: number) => void;
+}
+
+function SuggestionCard({
+  sugerencia,
+  dragHandleProps,
+  variantes,
+  selectedIdx,
+  setSelectedIdx
+}: SuggestionCardProps) {
   const [isExpanded, setIsExpanded] = useState(false);
 
   const desgloseClasses = `ml-7 text-xs text-gray-700 grid gap-2 transition-all duration-300 ease-in-out ${
@@ -24,24 +45,53 @@ function SuggestionCard({ sugerencia, dragHandleProps }: { sugerencia: MateriaSu
           <GripVertical size={18} />
         </div>
 
-        <div className="flex-1">
-          <h4 className="font-bold text-[#002d55] flex items-center gap-1.5 text-sm">
+        <div className="flex-1 min-w-0">
+          <h4 className="font-bold text-[#002d55] flex items-center gap-1.5 text-sm truncate">
             {sugerencia.score_total >= 80 && (
-              <Star size={14} className="text-amber-500 fill-amber-500" />
+              <Star size={14} className="text-amber-500 fill-amber-500 shrink-0" />
             )}
-            {sugerencia.asignatura}
+            <span className="truncate">{sugerencia.asignatura}</span>
           </h4>
-          <p className="text-xs text-gray-600 mt-0.5">
-            Semestre {sugerencia.periodo} • Grupo {sugerencia.grupo} • {sugerencia.hsm} HSM
-          </p>
-          <p className="text-xs font-semibold text-amber-700 mt-1">
+          
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mt-1">
+            <span className="text-[11px] text-gray-600 bg-gray-50 px-1.5 py-0.5 rounded-md font-medium">
+              Nivel {sugerencia.periodo}
+            </span>
+            <span className="text-[11px] text-gray-600 bg-gray-50 px-1.5 py-0.5 rounded-md font-medium">
+              {sugerencia.hsm} HSM
+            </span>
+            
+            {variantes.length > 1 ? (
+              <div className="flex items-center gap-1">
+                <span className="text-[11px] text-gray-500 font-semibold">Grupo:</span>
+                <select
+                  value={selectedIdx}
+                  onChange={(e) => setSelectedIdx(Number(e.target.value))}
+                  className="px-1.5 py-0.5 bg-amber-50 border border-amber-200 hover:border-amber-300 text-amber-900 rounded-md text-[11px] font-bold focus:outline-none cursor-pointer transition-colors"
+                >
+                  {variantes.map((v, i) => (
+                    <option key={v.grupo_abierto_id} value={i}>
+                      "{v.grupo}" ({v.score_total}%)
+                    </option>
+                  ))}
+                </select>
+              </div>
+            ) : (
+              <span className="text-[11px] text-gray-700 bg-amber-50/50 border border-amber-100 px-1.5 py-0.5 rounded-md font-bold">
+                Grupo "{sugerencia.grupo}"
+              </span>
+            )}
+          </div>
+
+          <p className="text-[11px] font-extrabold text-amber-700 mt-2 flex items-center gap-1">
+            <Sparkles size={11} className="text-amber-500" />
             Score de afinidad: {sugerencia.score_total}%
           </p>
         </div>
         
         <button 
           onClick={() => setIsExpanded(!isExpanded)}
-          className="text-amber-600 hover:text-[#002d55] p-1 rounded-full hover:bg-amber-100 transition-all cursor-pointer"
+          className="text-amber-600 hover:text-[#002d55] p-1 rounded-full hover:bg-amber-100 transition-all cursor-pointer shrink-0 ml-1"
           title={isExpanded ? "Ocultar razones" : "Ver razones de la sugerencia"}
         >
           {isExpanded ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
@@ -50,29 +100,72 @@ function SuggestionCard({ sugerencia, dragHandleProps }: { sugerencia: MateriaSu
 
       <div className={desgloseClasses}>
         <div className="flex justify-between">
-          <span title="Calculado proporcionalmente según el récord histórico de esta asignatura">
-            <BookCopy className="inline w-4 mr-2" /> Experiencia previa ({sugerencia.veces_impartida} veces)
+          <span className="flex items-center" title="Calculado proporcionalmente según el récord histórico de esta asignatura">
+            <BookCopy className="w-3.5 h-3.5 mr-2 text-gray-400" /> Experiencia previa ({sugerencia.veces_impartida} veces)
           </span>
           <span className="font-semibold text-gray-900">{sugerencia.desglose.historial} pts</span>
         </div>
         <div className="flex justify-between">
-          <span> <BrainCircuit className="inline w-4 mr-2" /> Afinidad con Área de Conocimiento</span>
+          <span className="flex items-center"> <BrainCircuit className="w-3.5 h-3.5 mr-2 text-gray-400" /> Afinidad con Área de Conocimiento</span>
           <span className="font-semibold text-gray-900">{sugerencia.desglose.area} pts</span>
         </div>
         <div className="flex justify-between">
-          <span><CalendarCheck2 className="inline w-4 mr-2" /> Compatibilidad de Turno</span>
+          <span className="flex items-center"><CalendarCheck2 className="w-3.5 h-3.5 mr-2 text-gray-400" /> Compatibilidad de Turno</span>
           <span className="font-semibold text-gray-900">{sugerencia.desglose.turno} pts</span>
         </div>
         <div className="flex justify-between opacity-75">
-          <span><University className="inline w-4 mr-2" /> Prioridad Institucional</span>
+          <span className="flex items-center"><University className="w-3.5 h-3.5 mr-2 text-gray-400" /> Prioridad Institucional</span>
           <span className="font-semibold text-gray-900">{sugerencia.desglose.prioridad} pts</span>
         </div>
         <div className="flex justify-between opacity-75">
-          <span><Scale className="inline w-4 mr-2" /> Balance de Carga Horaria</span>
+          <span className="flex items-center"><Scale className="w-3.5 h-3.5 mr-2 text-gray-400" /> Balance de Carga Horaria</span>
           <span className="font-semibold text-gray-900">{sugerencia.desglose.carga} pts</span>
         </div>
       </div>
     </div>
+  );
+}
+
+function GroupedSuggestionDraggable({ sug, index }: { sug: any; index: number }) {
+  const [selectedIdx, setSelectedIdx] = useState(0);
+  
+  // Garantizar que el índice sea válido
+  const activeIdx = selectedIdx >= sug.variantes.length ? 0 : selectedIdx;
+  const activeVariante = sug.variantes[activeIdx] || sug.variantes[0];
+  
+  const dragId = `materia-${activeVariante.materia_id}-${activeVariante.grupo_abierto_id}`;
+  
+  const currentSugerencia: MateriaSugeridaDTO = {
+    materia_id: activeVariante.materia_id,
+    grupo_abierto_id: activeVariante.grupo_abierto_id,
+    asignatura: sug.asignatura,
+    periodo: sug.periodo,
+    grupo: activeVariante.grupo,
+    hsm: sug.hsm,
+    score_total: activeVariante.score_total,
+    veces_impartida: sug.veces_impartida,
+    desglose: activeVariante.desglose
+  };
+
+  return (
+    <Draggable key={dragId} draggableId={dragId} index={index}>
+      {(provided, snapshot) => (
+        <div
+          ref={provided.innerRef}
+          {...provided.draggableProps}
+          style={{ ...provided.draggableProps.style }}
+          className={snapshot.isDragging ? 'opacity-90 shadow-2xl scale-105 transition-all' : 'transition-all'}
+        >
+          <SuggestionCard 
+            sugerencia={currentSugerencia} 
+            dragHandleProps={provided.dragHandleProps} 
+            variantes={sug.variantes}
+            selectedIdx={activeIdx}
+            setSelectedIdx={setSelectedIdx}
+          />
+        </div>
+      )}
+    </Draggable>
   );
 }
 
@@ -81,6 +174,47 @@ export default function SmartSuggestions() {
   
   // Estado para expandir/contraer el panel completo
   const [isPanelExpanded, setIsPanelExpanded] = useState(false);
+
+  // Agrupar sugerencias por asignatura
+  const sugerenciasAgrupadas = useMemo(() => {
+    const mapa = new Map<string, {
+      asignatura: string;
+      periodo: number;
+      hsm: number;
+      veces_impartida: number;
+      variantes: VarianteGrupo[];
+    }>();
+
+    materiasSugeridas.forEach(sug => {
+      const key = sug.asignatura.trim().toLowerCase();
+      if (!mapa.has(key)) {
+        mapa.set(key, {
+          asignatura: sug.asignatura,
+          periodo: sug.periodo,
+          hsm: sug.hsm,
+          veces_impartida: sug.veces_impartida,
+          variantes: []
+        });
+      }
+      
+      const groupData = mapa.get(key)!;
+      // Evitar grupos duplicados con el mismo nombre de grupo
+      const existeVariante = groupData.variantes.some(
+        v => v.grupo.toUpperCase() === sug.grupo.toUpperCase()
+      );
+      if (!existeVariante) {
+        groupData.variantes.push({
+          materia_id: sug.materia_id,
+          grupo_abierto_id: sug.grupo_abierto_id,
+          grupo: sug.grupo,
+          score_total: sug.score_total,
+          desglose: sug.desglose
+        });
+      }
+    });
+
+    return Array.from(mapa.values());
+  }, [materiasSugeridas]);
 
   // Ocultar por completo si no hay datos suficientes o el arreglo está vacío
   if (!docenteSeleccionadoId || !planEstudioSeleccionadoId || materiasSugeridas.length === 0) {
@@ -99,12 +233,12 @@ export default function SmartSuggestions() {
     <div className="bg-white border border-amber-200 rounded-lg shadow-sm overflow-hidden flex flex-col mb-4">
       <div 
         onClick={() => setIsPanelExpanded(!isPanelExpanded)}
-        className="px-4 py-3 bg-linear-to-r from-amber-50 to-orange-50 border-b border-amber-200 flex items-center justify-between gap-2 cursor-pointer group"
+        className="px-4 py-3 bg-linear-to-r from-amber-50 to-orange-50 border-b border-amber-200 flex items-center justify-between gap-2 cursor-pointer group select-none"
       >
         <div className="flex items-center gap-2">
-          <Sparkles size={16} className="text-amber-600 animate-pulse" />
+          <Sparkles size={16} className="text-amber-600 animate-pulse animate-duration-1000" />
           <h3 className="font-bold text-amber-900 text-sm tracking-wide uppercase">
-            Sugerencias del Sistema
+            Sugerencias del Sistema ({sugerenciasAgrupadas.length})
           </h3>
         </div>
         
@@ -123,27 +257,13 @@ export default function SmartSuggestions() {
                 {...provided.droppableProps}
                 className="min-h-2.5"
               >
-                {materiasSugeridas.map((sug, index) => {
-                  const dragId = `materia-${sug.materia_id}-${sug.grupo_abierto_id}`;
-                  
-                  return (
-                    <Draggable key={dragId} draggableId={dragId} index={index}>
-                      {(provided, snapshot) => (
-                        <div
-                          ref={provided.innerRef}
-                          {...provided.draggableProps}
-                          style={{ ...provided.draggableProps.style }}
-                          className={snapshot.isDragging ? 'opacity-90 shadow-2xl scale-105 transition-all' : 'transition-all'}
-                        >
-                          <SuggestionCard 
-                            sugerencia={sug} 
-                            dragHandleProps={provided.dragHandleProps} 
-                          />
-                        </div>
-                      )}
-                    </Draggable>
-                  );
-                })}
+                {sugerenciasAgrupadas.map((sug, index) => (
+                  <GroupedSuggestionDraggable 
+                    key={sug.asignatura} 
+                    sug={sug} 
+                    index={index} 
+                  />
+                ))}
                 {provided.placeholder}
               </div>
             )}

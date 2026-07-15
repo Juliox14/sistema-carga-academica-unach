@@ -85,6 +85,7 @@ export default function AssignedContent() {
                   <thead className="bg-white border-b border-gray-200 text-gray-500 text-xs uppercase">
                     <tr>
                       <th className="py-3 px-4 font-medium">Asignatura</th>
+                      <th className="py-3 px-2 font-medium text-center">Programa</th>
                       <th className="py-3 px-2 font-medium text-center">Grp</th>
                       <th className="py-3 px-2 font-medium text-center">HSM</th>
                       <th className="py-3 px-4 font-medium text-right">Acciones</th>
@@ -97,6 +98,7 @@ export default function AssignedContent() {
                           {m.asignatura}
                           {m.es_temporal && <span className="ml-2 text-[10px] bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded font-bold">SUPLENCIA</span>}
                         </td>
+                        <td className="py-3 px-2 text-center text-xs font-semibold text-gray-500 uppercase">{m.programa_educativo || 'N/A'}</td>
                         <td className="py-3 px-2 text-gray-600 text-center font-bold">{m.grupo}</td>
                         <td className="py-3 px-2 text-gray-600 text-center font-bold">{m.hsm}</td>
                         <td className="py-3 px-4 flex justify-end gap-2">

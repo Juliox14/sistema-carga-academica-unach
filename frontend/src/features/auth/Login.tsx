@@ -17,7 +17,7 @@ export default function Login() {
     if (token) {
       cargarPerfil().then((success) => {
         if (success) {
-          navigate('/asignacion', { replace: true });
+          navigate('/', { replace: true });
         }
       });
     }
@@ -42,7 +42,7 @@ export default function Login() {
     try {
       await login(email, password);
       toast.success('Inicio de sesión exitoso. ¡Bienvenido!');
-      navigate('/asignacion', { replace: true });
+      navigate('/', { replace: true });
     } catch (err: any) {
       const msg = err.response?.data?.detail || 'Error al iniciar sesión. Revisa tus credenciales.';
       toast.error(msg);

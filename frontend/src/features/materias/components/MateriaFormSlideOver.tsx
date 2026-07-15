@@ -4,6 +4,7 @@ import { X, Library, Loader2 } from 'lucide-react';
 import { FlatInput, FlatSelect } from '../../../components/ui/Form';
 import type { SyntheticEvent } from 'react';
 import { materiasService } from '../../../services/materias.service';
+import { areasService } from '../../../services/areas.service';
 import type { Materia } from '../../../types/materias';
 
 interface MateriaFormProps {
@@ -16,7 +17,26 @@ interface MateriaFormProps {
 
 export default function MateriaFormSlideOver({ isOpen, materia, planesOptions, onClose, onSuccess }: MateriaFormProps) {
   const [isSaving, setIsSaving] = useState(false);
+  const [areasOptions, setAreasOptions] = useState<{ value: string; label: string }[]>([]);
   const formRef = useRef<HTMLFormElement>(null);
+
+  // Cargar áreas de conocimiento al abrir
+  useEffect(() => {
+    const cargarAreas = async () => {
+      try {
+        const areasData = await areasService.obtenerTodos();
+        setAreasOptions(areasData.map(a => ({
+          value: String(a.id),
+          label: a.nombre
+        })));
+      } catch (error) {
+        console.error("Error al cargar áreas de conocimiento:", error);
+      }
+    };
+    if (isOpen) {
+      cargarAreas();
+    }
+  }, [isOpen]);
 
   // Limpiar el formulario físicamente al cerrarse
   useEffect(() => {
@@ -90,6 +110,13 @@ export default function MateriaFormSlideOver({ isOpen, materia, planesOptions, o
                 required 
               />
             </div>
+
+            <FlatSelect 
+              name="area_conocimiento_id" 
+              label="Área de Conocimiento" 
+              defaultValue={materia ? String(materia.area_conocimiento_id) : ''} 
+              options={areasOptions} 
+            />
 
             <div className="flex gap-4">
               <FlatInput 

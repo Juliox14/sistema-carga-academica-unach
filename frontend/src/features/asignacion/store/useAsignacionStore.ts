@@ -4,6 +4,7 @@ import { isAxiosError } from 'axios';
 import type { ActividadBaseDTO, TabType, MateriaAsignadaDTO, OtraActividadAsignadaDTO, MateriaDisponibleDTO, TableroDocenteResponse, MateriaSugeridaDTO, ResumenCargaResponse, CategoriaDocente } from '../../../types/asignaciones';
 import toast from 'react-hot-toast';
 import { asignacionesService } from '../../../services/asignaciones.service';
+import { ciclosService } from '../../../services/ciclos.service';
 
 interface AsignacionState {
   nombreDocente: string;
@@ -62,6 +63,12 @@ interface AsignacionState {
   fetchResumenCarga: () => Promise<void>;
   setSelectedCategoriaId: (id: number | '') => void;
   setCategoriasDocentes: (categorias: CategoriaDocente[]) => void;
+  
+  // Ciclo Activo y Finalización
+  cicloActivo: any | null;
+  fetchCicloActivo: () => Promise<void>;
+  finalizarCargaAcademica: () => Promise<void>;
+  desfinalizarCargaAcademica: () => Promise<void>;
 }
 
 export const useAsignacionStore = create<AsignacionState>((set, get) => ({
@@ -88,6 +95,7 @@ export const useAsignacionStore = create<AsignacionState>((set, get) => ({
   resumenCarga: null,
   selectedCategoriaId: '',
   categoriasDocentes: [],
+  cicloActivo: null,
 
   setActiveTab: (tab) => set({ activeTab: tab }),
 
@@ -340,6 +348,44 @@ export const useAsignacionStore = create<AsignacionState>((set, get) => ({
     } catch (error: any) {
       console.error('Error al eliminar otra actividad:', error);
       toast.error(error.response?.data?.detail || 'Error al eliminar la actividad');
+    } finally {
+      set({ isLoading: false });
+    }
+  },
+
+  fetchCicloActivo: async () => {
+    try {
+      const ciclos = await ciclosService.obtenerTodos();
+      const activo = ciclos.find(c => c.activo);
+      set({ cicloActivo: activo || null });
+    } catch (error) {
+      console.error('Error al obtener ciclo activo:', error);
+    }
+  },
+
+  finalizarCargaAcademica: async () => {
+    set({ isLoading: true });
+    try {
+      const ciclo = await ciclosService.finalizarCarga();
+      set({ cicloActivo: ciclo });
+      toast.success('Carga académica finalizada con éxito. Iniciando fase de horarios.');
+    } catch (error: any) {
+      console.error('Error al finalizar carga académica:', error);
+      toast.error(error.response?.data?.detail || 'Error al finalizar la carga académica');
+    } finally {
+      set({ isLoading: false });
+    }
+  },
+
+  desfinalizarCargaAcademica: async () => {
+    set({ isLoading: true });
+    try {
+      const ciclo = await ciclosService.desfinalizarCarga();
+      set({ cicloActivo: ciclo });
+      toast.success('Carga académica abierta nuevamente para modificaciones.');
+    } catch (error: any) {
+      console.error('Error al reabrir carga académica:', error);
+      toast.error(error.response?.data?.detail || 'Error al reabrir la carga académica');
     } finally {
       set({ isLoading: false });
     }

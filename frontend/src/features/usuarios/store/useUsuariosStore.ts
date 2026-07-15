@@ -32,7 +32,7 @@ interface UsuariosState {
   restablecerPassword: (usuarioId: number, nuevaPassword: string) => Promise<void>;
 }
 
-export const useUsuariosStore = create<UsuariosState>((set, get) => ({
+export const useUsuariosStore = create<UsuariosState>((set) => ({
   usuarios: [],
   roles: [],
   docentesSinUsuario: [],

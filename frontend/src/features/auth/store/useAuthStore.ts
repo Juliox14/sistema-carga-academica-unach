@@ -3,6 +3,7 @@ import api from '../../../services/api';
 
 interface UserProfile {
   email: string;
+  nombre?: string;
   rol: string;
   requiere_cambio_password: boolean;
 }
@@ -54,12 +55,13 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     set({ isLoading: true });
     try {
       const response = await api.get('/auth/me');
-      const { email_institucional, rol_clave, requiere_cambio_password } = response.data;
+      const { email_institucional, rol_clave, requiere_cambio_password, nombre } = response.data;
       
       set({
         user: { 
           email: email_institucional, 
           rol: rol_clave, 
+          nombre: nombre,
           requiere_cambio_password: requiere_cambio_password 
         },
         isLoading: false

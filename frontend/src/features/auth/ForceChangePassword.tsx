@@ -4,7 +4,7 @@ import { Lock, KeyRound, AlertTriangle, Loader2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 export default function ForceChangePassword() {
-  const { user, cambiarPasswordPropia } = useAuthStore();
+  const { cambiarPasswordPropia } = useAuthStore();
   const [passwordActual, setPasswordActual] = useState('');
   const [nuevaPassword, setNuevaPassword] = useState('');
   const [confirmarPassword, setConfirmarPassword] = useState('');

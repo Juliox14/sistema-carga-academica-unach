@@ -5,5 +5,6 @@ export interface CicloEscolar {
   mes_final: number;
   anio: number;
   activo: boolean;
+  carga_finalizada?: boolean;
 }
 

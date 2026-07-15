@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import { useOficiosStore } from '../store/useOficiosStore';
-import { Send, FileText, CheckCircle2, Eye, Check, Copy, Clock, Search, Loader2, X, AlertCircle } from 'lucide-react';
+import { Send, FileText, CheckCircle2, Eye, Check, Copy, Clock, Search, Loader2, X, AlertCircle, Printer } from 'lucide-react';
 import toast from 'react-hot-toast';
+import api from '../../../services/api';
 
 export default function AuditoriaOficios() {
   const { oficiosEmitidos, isLoading, fetchOficiosEmitidos, emitirOficios } = useOficiosStore();
@@ -80,6 +81,20 @@ export default function AuditoriaOficios() {
     setCopiedHash(hash);
     toast.success('Sello digital copiado al portapapeles.');
     setTimeout(() => setCopiedHash(null), 2000);
+  };
+
+  const handleGenerarReporte = async (docenteId: number) => {
+    try {
+      const response = await api.get(`/asignaciones/reporte-carga/${docenteId}`, { responseType: 'text' });
+      const printWindow = window.open('', '_blank');
+      if (printWindow) {
+        printWindow.document.write(response.data);
+        printWindow.document.close();
+      }
+    } catch (error) {
+      console.error("Error al generar el reporte:", error);
+      toast.error("No se pudo generar el reporte oficial.");
+    }
   };
 
   // Filtrado de oficios
@@ -234,12 +249,13 @@ export default function AuditoriaOficios() {
                   <th className="px-6 py-4">Estado Ciclo</th>
                   <th className="px-6 py-4">Sello Digital Criptográfico</th>
                   <th className="px-6 py-4">IP / Sello de Tiempo</th>
+                  <th className="px-6 py-4 text-center">Reporte</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100 text-xs text-gray-700">
                 {filteredOficios.length === 0 ? (
                   <tr>
-                    <td colSpan={5} className="px-6 py-12 text-center text-xs text-gray-400 font-semibold italic">
+                    <td colSpan={6} className="px-6 py-12 text-center text-xs text-gray-400 font-semibold italic">
                       No se encontraron registros de oficios emitidos.
                     </td>
                   </tr>
@@ -336,6 +352,22 @@ export default function AuditoriaOficios() {
                           </div>
                         ) : (
                           <span className="text-[10px] text-gray-400 italic">No registrado</span>
+                        )}
+                      </td>
+
+                      {/* Reporte Oficial */}
+                      <td className="px-6 py-4 text-center">
+                        {oficio.estado === 'FIRMADO' ? (
+                          <button
+                            onClick={() => handleGenerarReporte(oficio.docente_id)}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#002d55]/10 hover:bg-[#002d55]/15 text-[#002d55] border border-[#002d55]/20 rounded-xl text-[10px] font-bold transition-all cursor-pointer shadow-xs"
+                            title="Generar Reporte Oficial de Carga Académica"
+                          >
+                            <Printer size={12} />
+                            Generar Reporte
+                          </button>
+                        ) : (
+                          <span className="text-[10px] text-gray-400 italic font-semibold">Pendiente de firma</span>
                         )}
                       </td>
 
@@ -438,7 +470,6 @@ export default function AuditoriaOficios() {
           </div>
         </div>
       )}
-
     </div>
   );
 }

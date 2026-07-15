@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { createBrowserRouter, RouterProvider, Navigate } from 'react-router-dom';
+import { createBrowserRouter, RouterProvider } from 'react-router-dom';
 import MainLayout from './layouts/MainLayout';
 import { Toaster } from 'react-hot-toast';
 import ProtectedRoute from './components/auth/ProtectedRoute';
@@ -27,14 +27,14 @@ import ForceChangePassword from './features/auth/ForceChangePassword';
 import PlantillasManager from './features/oficios/components/PlantillasManager';
 import AuditoriaOficios from './features/oficios/components/AuditoriaOficios';
 import DocenteOficioPortal from './features/oficios/components/DocenteOficioPortal';
+import HorariosReport from './features/reportes/HorariosReport';
 
-const RootRedirect = () => {
-  const { user } = useAuthStore();
-  if (user?.rol === 'DOCENTE') {
-    return <Navigate to="/oficios/firma" replace />;
-  }
-  return <Navigate to="/asignacion" replace />;
-};
+// Import Scheduling & Preferences Components
+import MisPreferencias from './features/docentes/components/MisPreferencias';
+import HorariosDashboard from './features/horarios/HorariosDashboard';
+
+// Import InicioDashboard
+import InicioDashboard from './features/home/InicioDashboard';
 
 const router = createBrowserRouter([
   {
@@ -65,7 +65,7 @@ const router = createBrowserRouter([
         children: [
           {
             index: true,
-            element: <RootRedirect />,
+            element: <InicioDashboard />,
           },
           // ─── RUTAS EXCLUSIVAS DE SUPER_ADMIN Y SECRETARIA_ACADEMICA ───
           {
@@ -95,6 +95,14 @@ const router = createBrowserRouter([
                 path: 'oficios/auditoria',
                 element: <AuditoriaOficios />,
               },
+              {
+                path: 'reportes/horarios',
+                element: <HorariosReport />,
+              },
+              {
+                path: 'horarios',
+                element: <HorariosDashboard />,
+              },
             ],
           },
           // ─── RUTA EXCLUSIVA DE DOCENTES Y ROLES AUTENTICADOS ───
@@ -104,6 +112,10 @@ const router = createBrowserRouter([
               {
                 path: 'oficios/firma',
                 element: <DocenteOficioPortal />,
+              },
+              {
+                path: 'preferencias',
+                element: <MisPreferencias />,
               },
             ],
           },

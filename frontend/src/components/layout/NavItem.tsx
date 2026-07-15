@@ -3,7 +3,7 @@ import { NavLink } from 'react-router-dom';
 import { ChevronDown } from 'lucide-react';
 
 export default function NavItem({ item, collapsed, depth = 0 }: any) {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(item.label === 'Catálogos' || item.label === 'Reportes');
   const hasChildren = item.children?.length > 0;
   const Icon = item.icon;
 

@@ -31,6 +31,7 @@ export default function ProgramaFormSlideOver({ isOpen, programa, onClose, onSuc
       clave: formData.get('clave') as string,
       nombre: formData.get('nombre') as string,
       activo: formData.get('activo') === 'true',
+      nivel: formData.get('nivel') as string,
     };
 
     try {
@@ -77,6 +78,18 @@ export default function ProgramaFormSlideOver({ isOpen, programa, onClose, onSuc
             <FlatInput name="clave" label="Clave Institucional" defaultValue={programa?.clave} placeholder="Ej. LSC" className="uppercase" required />
             <FlatInput name="nombre" label="Nombre del Programa Educativo" defaultValue={programa?.nombre} placeholder="Ej. LICENCIATURA EN SISTEMAS..." className="uppercase" required />
             <FlatSelect name="activo" label="Estado del Programa" defaultValue={programa ? (programa.activo ? 'true' : 'false') : 'true'} options={[{ value: 'true', label: 'Activo' }, { value: 'false', label: 'Inactivo' }]} />
+            <FlatSelect 
+              name="nivel" 
+              label="Nivel de Estudios" 
+              defaultValue={programa ? programa.nivel : 'LICENCIATURA'} 
+              options={[
+                { value: 'LICENCIATURA', label: 'Licenciatura' },
+                { value: 'POSGRADO', label: 'Posgrado' },
+                { value: 'ESPECIALIDAD', label: 'Especialidad' },
+                { value: 'MAESTRIA', label: 'Maestría' },
+                { value: 'DOCTORADO', label: 'Doctorado' }
+              ]} 
+            />
           </div>
         </div>
 

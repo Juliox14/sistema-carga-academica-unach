@@ -3,7 +3,9 @@ import { X, UserCheck, Loader2 } from 'lucide-react';
 import { FlatInput, FlatSelect } from '../../../components/ui/Form';
 import type { SyntheticEvent } from 'react';
 import { docentesService } from '../../../services/docentes.service';
+import { estatusService } from '../../../services/estatus.service';
 import type { Docente } from '../../../types/docentes';
+import type { EstatusDocente } from '../../../types/estatus';
 import type { AreaConocimiento } from '../../../types/areas';
 
 interface DocenteFormProps {
@@ -16,8 +18,34 @@ interface DocenteFormProps {
 }
 
 export default function DocenteFormSlideOver({ isOpen, docente, categoriasOptions, areasDisponibles, onClose, onSuccess }: DocenteFormProps) {
+  const [estatusList, setEstatusList] = useState<EstatusDocente[]>([]);
+  const [selectedEstatusId, setSelectedEstatusId] = useState<number>(0);
   const [isSaving, setIsSaving] = useState(false);
   const formRef = useRef<HTMLFormElement>(null);
+
+  useEffect(() => {
+    if (isOpen) {
+      const loadEstatus = async () => {
+        try {
+          const list = await estatusService.obtenerTodos();
+          setEstatusList(list);
+          if (docente) {
+            setSelectedEstatusId(docente.estatus_id);
+          } else {
+            const activoStatus = list.find(l => l.nombre === 'ACTIVO');
+            if (activoStatus) {
+              setSelectedEstatusId(activoStatus.id);
+            } else if (list.length > 0) {
+              setSelectedEstatusId(list[0].id);
+            }
+          }
+        } catch (err) {
+          console.error("Error al cargar estatus:", err);
+        }
+      };
+      loadEstatus();
+    }
+  }, [isOpen, docente]);
 
   useEffect(() => {
     if (!isOpen && formRef.current) {
@@ -29,7 +57,7 @@ export default function DocenteFormSlideOver({ isOpen, docente, categoriasOption
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
     
-    // Extraemos todos los checkboxes seleccionados (Devuelve un array de strings, lo pasamos a numbers)
+    // Extraemos todos los checkboxes seleccionados
     const areasIds = formData.getAll('areas_conocimiento_ids').map(id => Number(id));
 
     const datos = {
@@ -38,7 +66,9 @@ export default function DocenteFormSlideOver({ isOpen, docente, categoriasOption
       plaza: formData.get('plaza') as string,
       categoria_id: Number(formData.get('categoria_id')),
       hsm_personalizadas: formData.get('hsm_personalizadas') ? Number(formData.get('hsm_personalizadas')) : undefined,
-      estatus: formData.get('estatus') as any,
+      estatus_id: Number(formData.get('estatus_id')),
+      correo_institucional: (formData.get('correo_institucional') as string) || undefined,
+      telefono: (formData.get('telefono') as string) || undefined,
       turno: formData.get('turno') as any,
       areas_conocimiento_ids: areasIds,
     };
@@ -46,9 +76,9 @@ export default function DocenteFormSlideOver({ isOpen, docente, categoriasOption
     try {
       setIsSaving(true);
       if (docente?.id) {
-        await docentesService.actualizar(docente.id, datos);
+        await docentesService.actualizar(docente.id, datos as any);
       } else {
-        await docentesService.crear(datos);
+        await docentesService.crear(datos as any);
       }
       onSuccess();
       onClose();
@@ -60,7 +90,6 @@ export default function DocenteFormSlideOver({ isOpen, docente, categoriasOption
     }
   };
 
-  // Helper para saber si un checkbox debe ir marcado al editar
   const hasArea = (areaId: number) => {
     if (!docente?.areas_conocimiento) return false;
     return docente.areas_conocimiento.some(a => a.id === areaId);
@@ -93,16 +122,20 @@ export default function DocenteFormSlideOver({ isOpen, docente, categoriasOption
             <div className="grid grid-cols-2 gap-4">
               <FlatInput name="plaza" label="Clave de Plaza" defaultValue={docente?.plaza} placeholder="Ej. E3815" className="uppercase" required />
               <FlatSelect 
-                name="estatus" 
+                name="estatus_id"
                 label="Estatus" 
-                defaultValue={docente ? docente.estatus : 'ACTIVO'} 
-                options={[
-                  { value: 'ACTIVO', label: 'Activo' }, 
-                  { value: 'SABATICO', label: 'Sabático' },
-                  { value: 'PERMISO', label: 'Permiso' },
-                  { value: 'INACTIVO', label: 'Inactivo' }
-                ]} 
+                value={selectedEstatusId} 
+                onChange={(e) => setSelectedEstatusId(Number(e.target.value))}
+                options={estatusList.map(est => ({
+                  value: String(est.id),
+                  label: est.nombre
+                }))} 
               />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <FlatInput name="correo_institucional" type="email" label="Correo Institucional" defaultValue={docente?.correo_institucional} placeholder="Ej. juan.perez@unach.mx" />
+              <FlatInput name="telefono" label="Teléfono" defaultValue={docente?.telefono} placeholder="Ej. 961 123 4567" />
             </div>
 
             <FlatSelect name="categoria_id" label="Categoría de Contratación" defaultValue={docente ? String(docente.categoria_id) : ''} options={categoriasOptions} />
@@ -118,7 +151,7 @@ export default function DocenteFormSlideOver({ isOpen, docente, categoriasOption
                   { value: 'VESPERTINO', label: 'Vespertino' }
                 ]} 
               />
-              <FlatInput name="hsm_personalizadas" label="HSM Personalizadas (Opcional)" type="number" min="1" defaultValue={docente?.hsm_personalizadas || ''} placeholder="Diferente a categoría" />
+              <FlatInput name="hsm_personalizadas" label="HSM Personalizadas (Opcional)" type="number" min="0" step="0.5" defaultValue={docente?.hsm_personalizadas || ''} placeholder="Diferente a categoría" />
             </div>
 
             {/* Grid de Checkboxes para Áreas de Conocimiento */}

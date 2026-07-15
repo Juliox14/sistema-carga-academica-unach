@@ -78,7 +78,7 @@ export default function ActividadFormSlideOver({ isOpen, actividad, onClose, onS
               name="hsm" 
               label="HSM (Horas)" 
               type="number"
-              min="1"
+              min="0" step="0.5"
               defaultValue={actividad ? String(actividad.hsm) : ''} 
               required 
             />

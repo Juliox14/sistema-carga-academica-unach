@@ -25,6 +25,17 @@ export const programasService = {
   eliminar: async (id: number) => {
     const response = await api.delete(`/programas/${id}/`);
     return response.data;
+  },
+
+  importar: async (file: File) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    const response = await api.post('/programas/import', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      }
+    });
+    return response.data;
   }
 
 };

@@ -2,8 +2,6 @@ import { Clock } from 'lucide-react';
 import { useAsignacionStore } from '../store/useAsignacionStore';
 
 export default function TeacherStatsBar() {
-  // Extraemos directamente los totales que el backend ya calculó
-  // ¡Y ahora también el nombre del docente de la Escuela de Tecnologías Digitales Aplicadas!
   const { 
     horasFrenteGrupo, 
     horasDescargadas, 
@@ -11,10 +9,9 @@ export default function TeacherStatsBar() {
     sumaTotal, 
     hsmBase,
     docenteSeleccionadoId,
-    nombreDocente // <-- Extraído del estado global
+    nombreDocente
   } = useAsignacionStore();
 
-  // Prevención de división por cero
   const baseSegura = hsmBase > 0 ? hsmBase : 50;
 
   const pFrente = (horasFrenteGrupo / baseSegura) * 100;
