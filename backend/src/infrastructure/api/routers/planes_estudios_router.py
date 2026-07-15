@@ -62,6 +62,8 @@ def actualizar_plan_estudios(plan_id: int, plan: PlanEstudiosUpdate, db: Session
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
     
+from sqlalchemy.exc import IntegrityError
+
 @router.delete("/{plan_id}")
 def eliminar_plan_estudios(plan_id: int, db: Session = Depends(get_db)):
     try:
@@ -69,4 +71,11 @@ def eliminar_plan_estudios(plan_id: int, db: Session = Depends(get_db)):
         return {"detail": "Plan de estudios eliminado exitosamente"}
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(
+            status_code=400,
+            detail="No se puede eliminar el plan de estudios porque está asignado a materias, docentes o grupos activos."
+        )
+
     

@@ -1,6 +1,7 @@
 from pydantic import BaseModel, ConfigDict
 from typing import List, Optional
-from src.infrastructure.database.orm_models import EstatusDocente, Turno
+from src.infrastructure.database.orm_models import Turno
+from src.infrastructure.api.schemas.estatus_schema import EstatusDocenteResponse
 
 class AreaConocimientoResponse(BaseModel):
     id: int
@@ -12,8 +13,10 @@ class DocenteBase(BaseModel):
     apellidos: str
     plaza: str
     categoria_id: int
-    hsm_personalizadas: Optional[int] = None
-    estatus: EstatusDocente = EstatusDocente.ACTIVO
+    hsm_personalizadas: Optional[float] = None
+    estatus_id: int
+    correo_institucional: Optional[str] = None
+    telefono: Optional[str] = None
     usuario_id: Optional[int] = None
     turno: Turno = Turno.MIXTO
 
@@ -25,8 +28,10 @@ class DocenteUpdate(BaseModel):
     apellidos: Optional[str] = None
     plaza: Optional[str] = None
     categoria_id: Optional[int] = None
-    hsm_personalizadas: Optional[int] = None
-    estatus: Optional[EstatusDocente] = None
+    hsm_personalizadas: Optional[float] = None
+    estatus_id: Optional[int] = None
+    correo_institucional: Optional[str] = None
+    telefono: Optional[str] = None
     usuario_id: Optional[int] = None
     turno: Optional[Turno] = None
     
@@ -35,5 +40,6 @@ class DocenteUpdate(BaseModel):
 class DocenteResponse(DocenteBase):
     id: int
     areas_conocimiento: List[AreaConocimientoResponse] = []
+    estatus: Optional[EstatusDocenteResponse] = None
     
     model_config = ConfigDict(from_attributes=True)

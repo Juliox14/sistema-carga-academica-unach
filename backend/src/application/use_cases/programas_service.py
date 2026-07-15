@@ -58,11 +58,20 @@ def actualizar_programa(db: Session, programa_id: int, programa_data: ProgramaEd
 
 
 def eliminar_programa(db: Session, programa_id: int):
+    from src.infrastructure.database.orm_models import PlanEstudios
+    from src.application.use_cases.planes_estudios_service import eliminar_plan_estudios
+    
     db_programa = db.query(ProgramaEducativo).filter(ProgramaEducativo.id == programa_id).first()
 
     if not db_programa:
         return False
 
+    # 1. Obtener todos los planes asociados a este programa y eliminarlos en cascada
+    planes = db.query(PlanEstudios).filter(PlanEstudios.programa_educativo_id == programa_id).all()
+    for plan in planes:
+        eliminar_plan_estudios(db, plan.id)
+
+    # 2. Eliminar el programa
     db.delete(db_programa)
     db.commit()
     return True
@@ -85,6 +94,7 @@ async def importar_programas(db: Session, byte_object: BytesIO):
                 nombre=str(row_data.get("nombre") or "").strip(),
                 clave=str(row_data.get("clave") or "").strip(),
                 activo=bool(row_data.get("activo", True)) if row_data.get("activo") is not None else True,
+                nivel=str(row_data.get("nivel") or "LICENCIATURA").strip().upper()
             )
             objects.append(crear_nuevo_programa(db, programa_data))
 
@@ -98,7 +108,7 @@ async def exportar_programas(programas: list):
     sheet = wb.active
     sheet.title = "programas_educativos"
 
-    headers = ["id", "nombre", "clave", "activo"]
+    headers = ["id", "nombre", "clave", "activo", "nivel"]
     for col_idx, header in enumerate(headers, start=1):
         sheet.cell(row=1, column=col_idx, value=header)
 
@@ -107,6 +117,7 @@ async def exportar_programas(programas: list):
         sheet.cell(row=row_idx, column=2, value=programa.nombre)
         sheet.cell(row=row_idx, column=3, value=programa.clave)
         sheet.cell(row=row_idx, column=4, value=programa.activo)
+        sheet.cell(row=row_idx, column=5, value=programa.nivel)
 
     buffer = BytesIO()
     wb.save(buffer)

@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, UploadFile, File, HTTPException
 from sqlalchemy.orm import Session
 from typing import List
 
@@ -7,6 +7,18 @@ from src.infrastructure.api.schemas.docentes_schema import DocenteCreate, Docent
 from src.application.use_cases import docentes_service
 
 router = APIRouter(prefix="/api/docentes", tags=["Gestión de Docentes"])
+
+@router.post("/importar", response_model=List[DocenteResponse])
+async def importar_docentes(file: UploadFile = File(...), db: Session = Depends(get_db)):
+    if not file.filename.endswith(('.xlsx', '.xls')):
+        raise HTTPException(status_code=400, detail="El archivo debe ser un Excel (.xlsx, .xls)")
+    try:
+        from io import BytesIO
+        contents = await file.read()
+        byte_object = BytesIO(contents)
+        return await docentes_service.importar_docentes(db, byte_object)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
 @router.post("/", response_model=DocenteResponse)
 def crear_docente(docente: DocenteCreate, db: Session = Depends(get_db)):

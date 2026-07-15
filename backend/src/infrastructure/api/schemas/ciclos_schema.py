@@ -8,6 +8,7 @@ class CicloEscolarBase(BaseModel):
     mes_final: int
     anio: int
     activo: bool = False
+    carga_finalizada: bool = False
 
 class CicloEscolarCreate(CicloEscolarBase):
     pass

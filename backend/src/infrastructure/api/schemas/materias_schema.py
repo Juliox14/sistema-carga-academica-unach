@@ -7,7 +7,7 @@ class MateriaBase(BaseModel):
     numero_periodo: int
     hsm: int
     area_conocimiento_id: int
-    estatus: str
+    estatus: str = "ACTIVA"
 
 class MateriaCreate(MateriaBase):
     pass

@@ -39,29 +39,117 @@ def actualizar_plan_estudios(db: Session, plan_id: int, plan_data: PlanEstudiosU
     return plan
 
 def eliminar_plan_estudios(db: Session, plan_id: int):
+    from src.infrastructure.database.orm_models import PlanEstudios
     plan = db.query(PlanEstudios).filter(PlanEstudios.id == plan_id).first()
     if not plan:
         raise ValueError("Plan de estudios no encontrado")
     
+    # 1. Obtener todas las materias del plan y eliminar sus asignaciones y horarios
+    for materia in plan.materias:
+        for asignacion in materia.asignaciones:
+            for horario in asignacion.horarios:
+                db.delete(horario)
+            db.delete(asignacion)
+        db.delete(materia)
+        
+    # 2. Obtener todos los grupos del plan y eliminar sus asignaciones y horarios
+    for grupo in plan.grupos_abiertos:
+        for asignacion in grupo.asignaciones:
+            for horario in asignacion.horarios:
+                db.delete(horario)
+            db.delete(asignacion)
+        db.delete(grupo)
+        
+    # 3. Eliminar el plan de estudios
     db.delete(plan)
     db.commit()
     return True
 
 async def importar_plan_estudios(db: Session, byte_object: BytesIO):
     try:
+        from src.infrastructure.database.orm_models import ProgramaEducativo
         wb = xl.load_workbook(byte_object)
         sheet = wb["plan_estudios"]
         objects = []
         headers = [cell.value for cell in sheet[1]]
+
+        # Construir mapeo de ID de Excel a Clave/Nombre del Programa Educativo si existe la pestaña en el archivo
+        excel_prog_map = {}
+        if "programas_educativos" in wb.sheetnames:
+            prog_sheet = wb["programas_educativos"]
+            prog_headers = [c.value for c in prog_sheet[1]]
+            for r in prog_sheet.iter_rows(min_row=2, values_only=True):
+                r_data = {k: v for k, v in zip(prog_headers, r)}
+                ex_id = r_data.get("id")
+                clave = r_data.get("clave")
+                nombre = r_data.get("nombre")
+                if ex_id is not None:
+                    excel_prog_map[int(ex_id)] = (clave, nombre)
 
         for row in sheet.iter_rows(min_row=2, values_only=True):
             row_data = {key: value for key, value in zip(headers, row)}
             if not any(value is not None and str(value).strip() != "" for value in row_data.values()):
                 continue
 
+            prog_id = None
+            prog_id_raw = row_data.get("programa_educativo_id")
+            if prog_id_raw is not None and str(prog_id_raw).strip() != "":
+                # 1. Intentar mapear usando nuestro mapa de Excel
+                try:
+                    ex_id = int(prog_id_raw)
+                    if ex_id in excel_prog_map:
+                        clave, nombre = excel_prog_map[ex_id]
+                        if clave:
+                            prog = db.query(ProgramaEducativo).filter(ProgramaEducativo.clave == clave).first()
+                            if prog:
+                                prog_id = prog.id
+                        if not prog_id and nombre:
+                            prog = db.query(ProgramaEducativo).filter(ProgramaEducativo.nombre == nombre).first()
+                            if prog:
+                                prog_id = prog.id
+                except ValueError:
+                    pass
+
+                # 2. Si no se resolvió, ver si el ID existe directo en BD
+                if not prog_id:
+                    try:
+                        p_id = int(prog_id_raw)
+                        exists = db.query(ProgramaEducativo).filter(ProgramaEducativo.id == p_id).first()
+                        if exists:
+                            prog_id = exists.id
+                    except ValueError:
+                        pass
+            
+            # 3. Si sigue sin resolverse, buscar por claves/nombres en otros campos del Excel
+            if not prog_id:
+                prog_clave = str(row_data.get("programa_educativo_clave") or row_data.get("programa_clave") or "").strip()
+                if prog_clave:
+                    prog = db.query(ProgramaEducativo).filter(ProgramaEducativo.clave == prog_clave).first()
+                    if prog:
+                        prog_id = prog.id
+                
+                if not prog_id:
+                    prog_name = str(row_data.get("programa_educativo") or row_data.get("programa") or "").strip()
+                    if prog_name:
+                        prog = db.query(ProgramaEducativo).filter(ProgramaEducativo.nombre == prog_name).first()
+                        if prog:
+                            prog_id = prog.id
+
+            # 4. Si aún no se resolvió, intentar deducir a partir del nombre del plan (si contiene la clave del programa)
+            if not prog_id:
+                plan_name = str(row_data.get("nombre") or "").strip()
+                all_progs = db.query(ProgramaEducativo).all()
+                for p in all_progs:
+                    if p.clave and p.clave in plan_name:
+                        prog_id = p.id
+                        break
+
+            if not prog_id:
+                raise ValueError(f"No se pudo resolver el Programa Educativo para la fila con nombre: '{row_data.get('nombre')}'")
+
             plan_data = PlanEstudiosCreate(
                 nombre=str(row_data.get("nombre") or "").strip(),
-                programa_educativo_id=int(row_data.get("programa_educativo_id") or 0),
+                programa_educativo_id=prog_id,
                 vigente=row_data.get("vigente") if row_data.get("vigente") is not None else True,
                 tipo_periodo=row_data.get("tipo_periodo")
             )

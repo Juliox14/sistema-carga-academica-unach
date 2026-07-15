@@ -28,3 +28,19 @@ def actualizar(ciclo_id: int, ciclo: CicloEscolarUpdate, db: Session = Depends(g
 def eliminar(ciclo_id: int, db: Session = Depends(get_db)):
     ciclos_service.eliminar_ciclo(db, ciclo_id)
     return {"message": "Ciclo escolar eliminado exitosamente"}
+
+@router.post("/finalizar-carga", response_model=CicloEscolarResponse)
+def finalizar_carga(db: Session = Depends(get_db)):
+    try:
+        return ciclos_service.finalizar_carga_ciclo_activo(db)
+    except Exception as e:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=400, detail=str(e))
+
+@router.post("/desfinalizar-carga", response_model=CicloEscolarResponse)
+def desfinalizar_carga(db: Session = Depends(get_db)):
+    try:
+        return ciclos_service.desfinalizar_carga_ciclo_activo(db)
+    except Exception as e:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=400, detail=str(e))

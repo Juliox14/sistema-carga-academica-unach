@@ -74,6 +74,8 @@ def actualizar_programa(programa_id: int, programa: ProgramaEducativoUpdate, db:
         raise HTTPException(status_code=404, detail=str(e))
 
 
+from sqlalchemy.exc import IntegrityError
+
 @router.delete("/{programa_id}")
 def eliminar_programa(programa_id: int, db: Session = Depends(get_db)):
     try:
@@ -81,3 +83,9 @@ def eliminar_programa(programa_id: int, db: Session = Depends(get_db)):
         return {"detail": "Programa educativo eliminado exitosamente"}
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(
+            status_code=400,
+            detail="No se puede eliminar el programa educativo porque tiene planes de estudio vigentes asociados."
+        )

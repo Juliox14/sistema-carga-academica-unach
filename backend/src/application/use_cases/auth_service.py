@@ -76,6 +76,7 @@ def registrar_usuario(db: Session, registro: UsuarioRegistro) -> Usuario:
     # Asignar rol_clave y rol_nombre para facilitar la visualización en la respuesta
     nuevo_usuario.rol_clave = rol.clave
     nuevo_usuario.rol_nombre = rol.nombre
+    nuevo_usuario.nombre = f"{nuevo_usuario.docente.nombre} {nuevo_usuario.docente.apellidos}" if nuevo_usuario.docente else None
     return nuevo_usuario, password_usada
 
 
@@ -107,6 +108,7 @@ def autenticar_usuario(db: Session, login: UsuarioLogin) -> Usuario:
     # Añadir dinámicamente la clave del rol
     usuario.rol_clave = usuario.rol.clave if usuario.rol else None
     usuario.rol_nombre = usuario.rol.nombre if usuario.rol else None
+    usuario.nombre = f"{usuario.docente.nombre} {usuario.docente.apellidos}" if usuario.docente else None
     return usuario
 
 
@@ -118,6 +120,7 @@ def obtener_usuarios(db: Session):
     for u in usuarios:
         u.rol_clave = u.rol.clave if u.rol else None
         u.rol_nombre = u.rol.nombre if u.rol else None
+        u.nombre = f"{u.docente.nombre} {u.docente.apellidos}" if u.docente else None
     return usuarios
 
 

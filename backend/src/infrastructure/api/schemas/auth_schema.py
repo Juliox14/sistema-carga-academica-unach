@@ -25,6 +25,7 @@ class UsuarioResponse(BaseModel):
     rol_clave: Optional[str] = None
     rol_nombre: Optional[str] = None
     requiere_cambio_password: bool = False
+    nombre: Optional[str] = None
 
     model_config = ConfigDict(from_attributes=True)
 
