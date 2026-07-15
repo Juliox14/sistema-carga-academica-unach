@@ -33,6 +33,11 @@ def generar_reporte_carga_html(db: Session, docente_id: int) -> str:
     docente_nombre = f"{docente.apellidos} {docente.nombre}".upper()
     plaza = docente.plaza or ""
     categoria = docente.categoria.nombre.upper() if docente.categoria else ""
+    rfc = (docente.rfc or "").upper()
+    curp = (docente.curp or "").upper()
+    fecha_ingreso = docente.fecha_ingreso.strftime("%d/%m/%Y") if docente.fecha_ingreso else ""
+    perfil_academico = (docente.perfil_academico or "").upper()
+    ultimo_grado_estudio = (docente.ultimo_grado_estudio or "").upper()
     
     # Periodo Laboral
     if "AGOSTO" in ciclo.nombre.upper() or "DICIEMBRE" in ciclo.nombre.upper():
@@ -286,20 +291,20 @@ def generar_reporte_carga_html(db: Session, docente_id: int) -> str:
             <table class="data-table">
                 <tr>
                     <td style="width: 50%;"><span class="font-bold">ID:</span> {docente_id_str} &nbsp;&nbsp;&nbsp; <span class="font-bold">NOMBRE:</span> {docente_nombre}</td>
-                    <td style="width: 25%;"><span class="font-bold">RFC:</span> </td>
-                    <td style="width: 25%;"><span class="font-bold">CURP:</span> </td>
+                    <td style="width: 25%;"><span class="font-bold">RFC:</span> {rfc}</td>
+                    <td style="width: 25%;"><span class="font-bold">CURP:</span> {curp}</td>
                 </tr>
                 <tr>
                     <td><span class="font-bold">PLAZA:</span> {plaza}</td>
                     <td><span class="font-bold">CATEGORIA:</span> {categoria}</td>
-                    <td><span class="font-bold">FECHA INGRESO:</span> </td>
+                    <td><span class="font-bold">FECHA INGRESO:</span> {fecha_ingreso}</td>
                 </tr>
                 <tr>
                     <td colspan="3"><span class="font-bold">PERIODO LABORAL:</span> {periodo_laboral}</td>
                 </tr>
                 <tr>
-                    <td colspan="1.5"><span class="font-bold">PERFIL ACADEMICO:</span> </td>
-                    <td colspan="1.5"><span class="font-bold">ULTIMO GRADO DE ESTUDIO:</span> </td>
+                    <td colspan="1.5"><span class="font-bold">PERFIL ACADÉMICO:</span> {perfil_academico}</td>
+                    <td colspan="1.5"><span class="font-bold">ÚLTIMO GRADO DE ESTUDIO:</span> {ultimo_grado_estudio}</td>
                 </tr>
             </table>
 

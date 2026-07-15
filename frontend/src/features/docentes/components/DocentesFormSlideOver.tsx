@@ -71,6 +71,12 @@ export default function DocenteFormSlideOver({ isOpen, docente, categoriasOption
       telefono: (formData.get('telefono') as string) || undefined,
       turno: formData.get('turno') as any,
       areas_conocimiento_ids: areasIds,
+      // Campos PAD
+      rfc: (formData.get('rfc') as string) || undefined,
+      curp: (formData.get('curp') as string) || undefined,
+      fecha_ingreso: (formData.get('fecha_ingreso') as string) || undefined,
+      perfil_academico: (formData.get('perfil_academico') as string) || undefined,
+      ultimo_grado_estudio: (formData.get('ultimo_grado_estudio') as string) || undefined,
     };
 
     try {
@@ -152,6 +158,51 @@ export default function DocenteFormSlideOver({ isOpen, docente, categoriasOption
                 ]} 
               />
               <FlatInput name="hsm_personalizadas" label="HSM Personalizadas (Opcional)" type="number" min="0" step="0.5" defaultValue={docente?.hsm_personalizadas || ''} placeholder="Diferente a categoría" />
+            </div>
+
+            {/* ─── Información para PAD ─── */}
+            <div className="pt-2">
+              <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3 block border-b border-gray-200 pb-1">
+                Información para Reporte PAD
+              </label>
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <FlatInput
+                    name="rfc"
+                    label="RFC"
+                    defaultValue={docente?.rfc}
+                    placeholder="Ej. PELJ800101ABC"
+                    className="uppercase"
+                    maxLength={13}
+                  />
+                  <FlatInput
+                    name="curp"
+                    label="CURP"
+                    defaultValue={docente?.curp}
+                    placeholder="Ej. PELJ800101HCHRNN09"
+                    className="uppercase"
+                    maxLength={18}
+                  />
+                </div>
+                <FlatInput
+                  name="fecha_ingreso"
+                  type="date"
+                  label="Fecha de Ingreso"
+                  defaultValue={docente?.fecha_ingreso}
+                />
+                <FlatInput
+                  name="perfil_academico"
+                  label="Perfil Académico"
+                  defaultValue={docente?.perfil_academico}
+                  placeholder="Ej. Ingeniería en Sistemas Computacionales"
+                />
+                <FlatInput
+                  name="ultimo_grado_estudio"
+                  label="Último Grado de Estudio"
+                  defaultValue={docente?.ultimo_grado_estudio}
+                  placeholder="Ej. Maestría en Ciencias Computacionales"
+                />
+              </div>
             </div>
 
             {/* Grid de Checkboxes para Áreas de Conocimiento */}

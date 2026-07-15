@@ -1,5 +1,5 @@
 import enum
-from sqlalchemy import Column, Integer, String, Boolean, ForeignKey, BigInteger, Text, Enum as SQLEnum, Table, DateTime, Float
+from sqlalchemy import Column, Integer, String, Boolean, ForeignKey, BigInteger, Text, Enum as SQLEnum, Table, DateTime, Float, Date
 from sqlalchemy.orm import declarative_base, relationship
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -69,7 +69,7 @@ class Usuario(Base):
     password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
     rol_id = Column(BigInteger, ForeignKey('roles.id'), nullable=False)
     activo: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
-    requiere_cambio_password = Column(Boolean, default=False, server_default="0", nullable=False)
+    requiere_cambio_password: Mapped[bool] = mapped_column(Boolean, default=False, server_default="0", nullable=False)
 
     # Relaciones
     rol = relationship("Rol", back_populates="usuarios")
@@ -173,6 +173,11 @@ class Docente(Base):
     telefono = Column(String(30), nullable=True)
     usuario_id = Column(BigInteger, ForeignKey('usuarios.id'), unique=True, nullable=True)
     turno: Mapped[Turno] = mapped_column(SQLEnum(Turno), nullable=False, default=Turno.MIXTO)
+    rfc = Column(String(13), nullable=True)
+    curp = Column(String(18), nullable=True)
+    fecha_ingreso = Column(Date, nullable=True)
+    perfil_academico = Column(String(200), nullable=True)
+    ultimo_grado_estudio = Column(String(150), nullable=True)
 
     # Relaciones
     estatus = relationship("EstatusDocente", back_populates="docentes")

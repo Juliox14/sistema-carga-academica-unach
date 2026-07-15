@@ -13,6 +13,12 @@ export interface Docente {
   correo_institucional?: string;
   telefono?: string;
   turno: 'MATUTINO' | 'VESPERTINO' | 'MIXTO';
-  areas_conocimiento?: AreaConocimiento[]; 
-  areas_conocimiento_ids?: number[]; 
+  areas_conocimiento?: AreaConocimiento[];
+  areas_conocimiento_ids?: number[];
+  // Campos PAD
+  rfc?: string;
+  curp?: string;
+  fecha_ingreso?: string; // ISO date string YYYY-MM-DD
+  perfil_academico?: string;
+  ultimo_grado_estudio?: string;
 }

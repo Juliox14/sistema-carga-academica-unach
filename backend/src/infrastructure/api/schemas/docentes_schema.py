@@ -1,5 +1,6 @@
 from pydantic import BaseModel, ConfigDict
 from typing import List, Optional
+from datetime import date
 from src.infrastructure.database.orm_models import Turno
 from src.infrastructure.api.schemas.estatus_schema import EstatusDocenteResponse
 
@@ -19,6 +20,12 @@ class DocenteBase(BaseModel):
     telefono: Optional[str] = None
     usuario_id: Optional[int] = None
     turno: Turno = Turno.MIXTO
+    # Campos PAD
+    rfc: Optional[str] = None
+    curp: Optional[str] = None
+    fecha_ingreso: Optional[date] = None
+    perfil_academico: Optional[str] = None
+    ultimo_grado_estudio: Optional[str] = None
 
 class DocenteCreate(DocenteBase):
     areas_conocimiento_ids: List[int] = []
@@ -34,6 +41,12 @@ class DocenteUpdate(BaseModel):
     telefono: Optional[str] = None
     usuario_id: Optional[int] = None
     turno: Optional[Turno] = None
+    # Campos PAD
+    rfc: Optional[str] = None
+    curp: Optional[str] = None
+    fecha_ingreso: Optional[date] = None
+    perfil_academico: Optional[str] = None
+    ultimo_grado_estudio: Optional[str] = None
     
     areas_conocimiento_ids: Optional[List[int]] = None
 
