@@ -79,7 +79,9 @@ export default function AssignedContent() {
               <div
                 ref={provided.innerRef}
                 {...provided.droppableProps}
-                className={`flex-1 flex flex-col transition-colors ${snapshot.isDraggingOver ? 'bg-blue-50/50' : ''}`}
+                className={`flex-1 flex flex-col transition-colors duration-200 rounded-sm ${
+                  snapshot.isDraggingOver ? 'drop-zone-active' : ''
+                }`}
               >
                 <table className="w-full text-sm text-left border-collapse">
                   <thead className="bg-white border-b border-gray-200 text-gray-500 text-xs uppercase">
@@ -92,8 +94,8 @@ export default function AssignedContent() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100">
-                    {cargaAsignada.map(m => (
-                      <tr key={m.asignacion_id} className="group hover:bg-gray-50 bg-white">
+                    {cargaAsignada.map((m, idx) => (
+                      <tr key={m.asignacion_id} className="group hover:bg-gray-50 bg-white row-assigned-enter" style={{ animationDelay: `${idx * 0.04}s` }}>
                         <td className="py-3 px-4 text-[#002d55] font-semibold">
                           {m.asignatura}
                           {m.es_temporal && <span className="ml-2 text-[10px] bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded font-bold">SUPLENCIA</span>}

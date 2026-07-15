@@ -120,9 +120,62 @@ export default function CatalogTable() {
           </thead>
           
           {activeTab === 'carga' ? (
-            <Droppable droppableId="catalogo-materias" type="materia" isDropDisabled={true}>
+            <Droppable
+              droppableId="catalogo-materias"
+              type="materia"
+              isDropDisabled={true}
+              renderClone={(provided, _snapshot, rubric) => {
+                // Datos de la materia que se está arrastrando
+                const dragId = rubric.draggableId;
+                const mat = sortedMaterias.find(
+                  m => `materia-${m.materia_id}-${m.grupo_abierto_id}` === dragId
+                );
+                const isMulti = selectedMateriaIds.includes(dragId) && selectedMateriaIds.length > 1;
+                const count   = selectedMateriaIds.length;
+
+                return (
+                  <div
+                    ref={provided.innerRef}
+                    {...provided.draggableProps}
+                    {...provided.dragHandleProps}
+                    className="relative select-none"
+                    style={{ ...provided.draggableProps.style, width: 320 }}
+                  >
+                    {/* Sombras de cartas apiladas (solo multi) */}
+                    {isMulti && count >= 3 && (
+                      <div className="absolute -bottom-2 -right-2 w-full rounded-lg border border-blue-200 bg-blue-50 h-12 shadow" />
+                    )}
+                    {isMulti && count >= 2 && (
+                      <div className="absolute -bottom-1 -right-1 w-full rounded-lg border border-blue-300 bg-blue-100 h-12 shadow" />
+                    )}
+
+                    {/* Tarjeta principal */}
+                    <div className={`multi-drag-ghost relative bg-white border-2 border-blue-500 rounded-lg px-4 py-3 shadow-2xl shadow-blue-500/30 flex items-center gap-3`}>
+                      <GripVertical size={16} className="text-blue-400 shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-bold text-[#002d55] truncate">
+                          {isMulti ? `${count} materias seleccionadas` : (mat?.asignatura ?? dragId)}
+                        </p>
+                        {!isMulti && mat && (
+                          <p className="text-xs text-gray-400 mt-0.5">Sem {mat.periodo} · Grp {mat.grupo} · {mat.hsm} HSM</p>
+                        )}
+                        {isMulti && (
+                          <p className="text-xs text-blue-500 mt-0.5 font-medium">Arrastra para asignar todas</p>
+                        )}
+                      </div>
+                      {/* Badge de conteo */}
+                      {isMulti && (
+                        <span className="shrink-0 w-7 h-7 rounded-full bg-blue-600 text-white text-xs font-black flex items-center justify-center shadow-lg">
+                          {count}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                );
+              }}
+            >
               {(provided) => (
-                <tbody 
+                <tbody
                   className="divide-y divide-gray-100"
                   ref={provided.innerRef}
                   {...provided.droppableProps}

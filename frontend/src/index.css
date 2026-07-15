@@ -23,3 +23,33 @@
   scrollbar-color: rgba(107, 131, 214, 0.45) transparent;
 }
 
+/* ─── Drag & Drop: animación de zona de destino ─── */
+@keyframes drop-zone-pulse {
+  0%, 100% { background-color: rgba(59, 130, 246, 0.06); border-color: rgba(59, 130, 246, 0.4); }
+  50%       { background-color: rgba(59, 130, 246, 0.14); border-color: rgba(59, 130, 246, 0.7); }
+}
+
+.drop-zone-active {
+  animation: drop-zone-pulse 1s ease-in-out infinite;
+}
+
+/* ─── Drag & Drop: fila nueva que entra al tablero ─── */
+@keyframes row-slide-in {
+  from { opacity: 0; transform: translateY(-8px) scale(0.98); }
+  to   { opacity: 1; transform: translateY(0)    scale(1);    }
+}
+
+.row-assigned-enter {
+  animation: row-slide-in 0.28s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* ─── Drag ghost: paquete multi-materia ─── */
+@keyframes ghost-pop-in {
+  from { opacity: 0; transform: scale(0.9) rotate(-1deg); }
+  to   { opacity: 1; transform: scale(1)   rotate(-1deg); }
+}
+
+.multi-drag-ghost {
+  animation: ghost-pop-in 0.15s ease-out both;
+  transform: rotate(-1deg);
+}
