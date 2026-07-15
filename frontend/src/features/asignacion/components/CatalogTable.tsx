@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Search, GripVertical, ArrowUpDown, ChevronUp, ChevronDown } from 'lucide-react';
+import { Search, GripVertical, ArrowUpDown, ChevronUp, ChevronDown, BookOpen, UserSearch } from 'lucide-react';
 import { useAsignacionStore } from '../store/useAsignacionStore';
 import { Droppable, Draggable } from '@hello-pangea/dnd';
 import { normalizar } from '../../../utils/text';
@@ -7,12 +7,14 @@ import { normalizar } from '../../../utils/text';
 type SortKey = 'asignatura' | 'periodo' | 'grupo' | 'hsm';
 
 export default function CatalogTable() {
-  const { 
-    activeTab, 
-    materiasDisponibles, 
-    actividadesDisponibles, 
-    selectedMateriaIds, 
-    toggleMateriaSelection 
+  const {
+    activeTab,
+    materiasDisponibles,
+    actividadesDisponibles,
+    selectedMateriaIds,
+    toggleMateriaSelection,
+    planEstudioSeleccionadoId,
+    docenteSeleccionadoId,
   } = useAsignacionStore();
 
   const [searchQuery, setSearchQuery] = useState('');
@@ -92,7 +94,28 @@ export default function CatalogTable() {
         </div>
       </div>
 
-      <div className="overflow-x-auto min-h-75 max-h-125 overflow-y-auto select-none">
+      {/* ─── Empty state: faltan selecciones previas ─── */}
+      {activeTab === 'carga' && (!docenteSeleccionadoId || !planEstudioSeleccionadoId) ? (
+        <div className="flex flex-col items-center justify-center min-h-75 gap-3 text-gray-400 px-6 py-10">
+          {!docenteSeleccionadoId ? (
+            <>
+              <UserSearch size={36} className="text-gray-300" />
+              <p className="text-sm font-semibold text-gray-500 text-center">Selecciona un docente</p>
+              <p className="text-xs text-gray-400 text-center max-w-52">
+                Elige un docente en el selector superior para ver las materias disponibles para asignar.
+              </p>
+            </>
+          ) : (
+            <>
+              <BookOpen size={36} className="text-gray-300" />
+              <p className="text-sm font-semibold text-gray-500 text-center">Selecciona un Plan de Estudios</p>
+              <p className="text-xs text-gray-400 text-center max-w-52">
+                Elige un plan de estudios en el selector superior para ver el catálogo de materias disponibles.
+              </p>
+            </>
+          )}
+        </div>
+      ) : (
         <table className="w-full text-sm text-left border-collapse">
           <thead className="bg-white border-b border-gray-200 text-gray-500 text-xs uppercase sticky top-0 z-10">
             <tr>
@@ -266,7 +289,7 @@ export default function CatalogTable() {
             </Droppable>
           )}
         </table>
-      </div>
+      )}
     </div>
   );
 }
