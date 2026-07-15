@@ -3,6 +3,7 @@ import { Search, ChevronDown, ChevronUp } from 'lucide-react';
 import { asignacionesService } from '../../../services/asignaciones.service';
 import type { PlanEstudio, DocenteFiltrado } from '../../../types/asignaciones';
 import { useAsignacionStore } from '../store/useAsignacionStore';
+import { normalizar } from '../../../utils/text';
 
 export default function AssignmentHeader() {
   const {
@@ -89,8 +90,9 @@ export default function AssignmentHeader() {
       list = list.filter(d => d.es_prioritario);
     }
     if (!searchQuery) return list;
+    const query = normalizar(searchQuery);
     return list.filter(d =>
-      d.nombre_completo.toLowerCase().includes(searchQuery.toLowerCase())
+      normalizar(d.nombre_completo).includes(query)
     );
   }, [docentes, searchQuery, soloPrioritarios]);
 

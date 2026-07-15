@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { Search, GripVertical, ArrowUpDown, ChevronUp, ChevronDown } from 'lucide-react';
 import { useAsignacionStore } from '../store/useAsignacionStore';
 import { Droppable, Draggable } from '@hello-pangea/dnd';
+import { normalizar } from '../../../utils/text';
 
 type SortKey = 'asignatura' | 'periodo' | 'grupo' | 'hsm';
 
@@ -34,11 +35,11 @@ export default function CatalogTable() {
 
   const filteredMaterias = useMemo(() => {
     if (!searchQuery.trim()) return materiasDisponibles;
-    const query = searchQuery.toLowerCase();
-    return materiasDisponibles.filter(m => 
-      m.asignatura.toLowerCase().includes(query) ||
+    const query = normalizar(searchQuery);
+    return materiasDisponibles.filter(m =>
+      normalizar(m.asignatura).includes(query) ||
       String(m.periodo).includes(query) ||
-      m.grupo.toLowerCase().includes(query)
+      normalizar(m.grupo).includes(query)
     );
   }, [materiasDisponibles, searchQuery]);
 
@@ -62,9 +63,9 @@ export default function CatalogTable() {
 
   const filteredActividades = useMemo(() => {
     if (!searchQuery.trim()) return actividadesDisponibles;
-    const query = searchQuery.toLowerCase();
-    return actividadesDisponibles.filter(a => 
-      a.nombre.toLowerCase().includes(query)
+    const query = normalizar(searchQuery);
+    return actividadesDisponibles.filter(a =>
+      normalizar(a.nombre).includes(query)
     );
   }, [actividadesDisponibles, searchQuery]);
 
