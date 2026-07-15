@@ -1,0 +1,2 @@
+from .carga_academica import generar_reporte_carga_html
+from .pad_horarios import generar_reporte_pad_html
