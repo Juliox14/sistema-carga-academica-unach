@@ -3,14 +3,14 @@ from typing import Optional
 
 class OtraActividadBase(BaseModel):
     nombre: str
-    hsm: int
+    hsm: float
 
 class OtraActividadCreate(OtraActividadBase):
     pass
 
 class OtraActividadUpdate(OtraActividadBase):
     nombre: Optional[str] = None
-    hsm: Optional[int] = None
+    hsm: Optional[float] = None
 
 class OtraActividadResponse(OtraActividadBase):
     id: int

@@ -4,7 +4,7 @@ from src.infrastructure.database.orm_models import Docente, PlanEstudios, OtraAc
 
 def buscar_docentes(db: Session, categoria_id: int | None = None, query: str | None = None):
     """Devuelve la lista de docentes activos, filtrable por categoría y nombre."""
-    filtros = [Docente.estatus == EstatusDocente.ACTIVO]
+    filtros = [EstatusDocente.permite_carga == True]
     
     if categoria_id:
         filtros.append(Docente.categoria_id == categoria_id)
@@ -16,14 +16,15 @@ def buscar_docentes(db: Session, categoria_id: int | None = None, query: str | N
             Docente.apellidos.ilike(search_term)
         ))
         
-    docentes = db.query(Docente).filter(and_(*filtros)).all()
+    docentes = db.query(Docente).join(EstatusDocente).filter(and_(*filtros)).order_by(EstatusDocente.es_prioritario.desc(), Docente.apellidos, Docente.nombre).all()
     
     return [
         {
             "id": d.id,
             "nombre_completo": f"{d.apellidos} {d.nombre}",
             "categoria": d.categoria.nombre if d.categoria else "Sin categoría",
-            "siglas_categoria": d.categoria.siglas if d.categoria else ""
+            "siglas_categoria": d.categoria.siglas if d.categoria else "",
+            "es_prioritario": d.estatus.es_prioritario if d.estatus else False
         }
         for d in docentes
     ]

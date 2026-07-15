@@ -6,5 +6,6 @@ from .disponibilidad import obtener_materias_disponibles
 from .sugerencias import obtener_materias_sugeridas
 from .tablero import obtener_tablero_docente
 from .validaciones import _verificar_limite_hsm
-from .resumen import obtener_resumen_carga_docentes
+from .resumen import obtener_resumen_carga_docentes, obtener_vacantes_ciclo_activo
+from .reportes import generar_reporte_carga_html, generar_reporte_pad_html
 

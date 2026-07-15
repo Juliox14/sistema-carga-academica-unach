@@ -1,6 +1,6 @@
 from sqlalchemy.orm import Session
 from sqlalchemy import or_
-from src.infrastructure.database.orm_models import Docente, CategoriaDocente, AsignacionCarga, AsignacionOtraActividad, EstatusDocente
+from src.infrastructure.database.orm_models import Docente, CategoriaDocente, AsignacionCarga, AsignacionOtraActividad
 from src.application.use_cases.ciclos_service import obtener_ciclo_activo
 
 def obtener_resumen_carga_docentes(db: Session):
@@ -16,8 +16,9 @@ def obtener_resumen_carga_docentes(db: Session):
     categorias = db.query(CategoriaDocente).all()
     mapa_categorias = {cat.id: {"nombre": cat.nombre, "siglas": cat.siglas, "hsm_base": cat.hsm_base} for cat in categorias}
 
-    # Obtener docentes activos
-    docentes_activos = db.query(Docente).filter(Docente.estatus == EstatusDocente.ACTIVO).all()
+    from src.infrastructure.database.orm_models import EstatusDocente
+    # Obtener docentes activos (que tienen estatus que permite carga)
+    docentes_activos = db.query(Docente).join(EstatusDocente).filter(EstatusDocente.permite_carga == True).all()
     if not docentes_activos:
         return {
             "cobertura": [],
@@ -134,3 +135,75 @@ def obtener_resumen_carga_docentes(db: Session):
         "cobertura": cobertura_lista,
         "docentes_incompletos": docentes_incompletos
     }
+
+def obtener_vacantes_ciclo_activo(db: Session):
+    from src.infrastructure.database.orm_models import AsignacionCarga, EstadoAsignacion, Materia, GrupoAbierto, EstatusMateria
+    from sqlalchemy import and_
+    
+    try:
+        ciclo = obtener_ciclo_activo(db)
+    except Exception:
+        return []
+        
+    if ciclo.carga_finalizada:
+        vacantes = db.query(AsignacionCarga).filter(
+            AsignacionCarga.ciclo_escolar_id == ciclo.id,
+            AsignacionCarga.estado_asignacion == EstadoAsignacion.VACANTE
+        ).all()
+        
+        res = []
+        for v in vacantes:
+            res.append({
+                "asignacion_id": v.id,
+                "materia_id": v.materia_id,
+                "asignatura": v.materia.nombre_asignatura if v.materia else "Desconocida",
+                "periodo": v.materia.numero_periodo if v.materia else 0,
+                "grupo": v.grupo_asignado.grupo if v.grupo_asignado else "-",
+                "hsm": v.materia.hsm if v.materia else 0,
+                "turno": v.grupo_asignado.turno.value if v.grupo_asignado and v.grupo_asignado.turno else "MIXTO",
+                "plan_estudios": v.materia.plan_estudio.nombre if v.materia and v.materia.plan_estudio else "N/A",
+                "programa_educativo": v.materia.plan_estudio.programa_educativo.nombre if v.materia and v.materia.plan_estudio and v.materia.plan_estudio.programa_educativo else "N/A"
+            })
+        return res
+    else:
+        # 1. Subconsulta de materias ya asignadas en el ciclo activo (tienen titular)
+        asignadas_subq = db.query(AsignacionCarga.materia_id, AsignacionCarga.grupo_asignado_id).filter(
+            AsignacionCarga.ciclo_escolar_id == ciclo.id,
+            AsignacionCarga.docente_titular_id.isnot(None)
+        ).subquery()
+
+        # 2. Hacemos el emparejamiento (Materia x Grupo) directo en SQL
+        query = db.query(Materia, GrupoAbierto).join(
+            GrupoAbierto,
+            and_(
+                Materia.numero_periodo == GrupoAbierto.numero_periodo,
+                Materia.plan_estudios_id == GrupoAbierto.plan_estudios_id,
+                GrupoAbierto.ciclo_escolar_id == ciclo.id
+            )
+        ).outerjoin(
+            asignadas_subq,
+            and_(
+                Materia.id == asignadas_subq.c.materia_id,
+                GrupoAbierto.id == asignadas_subq.c.grupo_asignado_id
+            )
+        ).filter(
+            Materia.estatus == EstatusMateria.ACTIVA,
+            asignadas_subq.c.materia_id.is_(None)
+        )
+        
+        unassigned_pairs = query.all()
+        
+        res = []
+        for materia, grupo in unassigned_pairs:
+            res.append({
+                "asignacion_id": 0,
+                "materia_id": materia.id,
+                "asignatura": materia.nombre_asignatura,
+                "periodo": materia.numero_periodo,
+                "grupo": grupo.grupo,
+                "hsm": materia.hsm,
+                "turno": grupo.turno.value if grupo.turno else "MIXTO",
+                "plan_estudios": materia.plan_estudio.nombre if materia.plan_estudio else "N/A",
+                "programa_educativo": materia.plan_estudio.programa_educativo.nombre if materia.plan_estudio and materia.plan_estudio.programa_educativo else "N/A"
+            })
+        return res

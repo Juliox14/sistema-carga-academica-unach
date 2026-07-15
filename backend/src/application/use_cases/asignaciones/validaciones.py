@@ -8,6 +8,14 @@ from .historial import obtener_mapa_historial_docente
 
 def _verificar_limite_hsm(db: Session, docente_id: int, nuevas_horas: int):
     """Verifica que el docente no rebase sus horas contratadas al asignarle una nueva carga."""
+    from src.infrastructure.database.orm_models import Docente
+    docente_db = db.query(Docente).filter(Docente.id == docente_id).first()
+    if docente_db and docente_db.estatus and not docente_db.estatus.permite_carga:
+        raise HTTPException(
+            status_code=400,
+            detail=f"El estatus actual del docente ({docente_db.estatus.nombre}) no permite la asignación de carga académica."
+        )
+        
     docente = obtener_tablero_docente(db, docente_id)
     horas_actuales = docente["suma_total"] + nuevas_horas
     limite = docente["hsm_base"]

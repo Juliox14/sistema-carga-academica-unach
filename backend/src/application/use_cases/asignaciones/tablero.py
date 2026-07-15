@@ -12,7 +12,9 @@ def obtener_tablero_docente(db: Session, docente_id: int):
     if not docente:
         raise HTTPException(status_code=404, detail="Docente no encontrado")
 
-    hsm_base = docente.hsm_personalizadas if docente.hsm_personalizadas else docente.categoria.hsm_base
+    hsm_base = docente.hsm_personalizadas if docente.hsm_personalizadas else (docente.categoria.hsm_base if docente.categoria else 0.0)
+    if docente.estatus and docente.estatus.max_horas is not None:
+        hsm_base = min(hsm_base, docente.estatus.max_horas)
     
     asignaciones_carga = db.query(AsignacionCarga).filter(
         or_(
@@ -41,7 +43,8 @@ def obtener_tablero_docente(db: Session, docente_id: int):
             "hsm": a.materia.hsm,
             "motivo_descarga": a.motivo_descarga,
             "profesor_cubre": profesor_cubre,
-            "es_temporal": a.docente_temporal_id == docente_id
+            "es_temporal": a.docente_temporal_id == docente_id,
+            "programa_educativo": a.materia.plan_estudio.programa_educativo.clave if (a.materia and a.materia.plan_estudio and a.materia.plan_estudio.programa_educativo) else "N/A"
         }
         
         # Lógica de clasificación (Titular vs Temporal vs Descargado)

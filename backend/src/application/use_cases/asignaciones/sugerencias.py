@@ -31,7 +31,7 @@ def obtener_materias_sugeridas(session: Session, docente_id: int, plan_id: int, 
     
     categoria = session.query(CategoriaDocente).filter(CategoriaDocente.id == docente.categoria_id).first() if docente else None
     
-    if not docente:
+    if not docente or (docente.estatus and not docente.estatus.permite_carga):
         return []
     
     hsm_base = docente.hsm_personalizadas if docente.hsm_personalizadas is not None else (categoria.hsm_base if categoria else 0)
@@ -47,7 +47,7 @@ def obtener_materias_sugeridas(session: Session, docente_id: int, plan_id: int, 
     ).scalar() or 0
 
     # Calculamos las horas disponibles
-    horas_disponibles = max(0, hsm_base - horas_ocupadas)
+    horas_disponibles = max(0, float(hsm_base) - float(horas_ocupadas))
     
     puntos_prioridad = obtener_puntos_prioridad(categoria)
     puntos_carga = obtener_puntos_balance_carga(hsm_base, horas_disponibles)
@@ -55,14 +55,14 @@ def obtener_materias_sugeridas(session: Session, docente_id: int, plan_id: int, 
 
     sugerencias_heap = []
     
-    d_turno = docente.turno.value if docente and docente.turno else "Mixto"
+    d_turno = docente.turno.value.upper() if docente and docente.turno else "MIXTO"
     
-    for materia in materias_disponibles:
-        m_turno = materia.get("turno", "Mixto")
+    for idx, materia in enumerate(materias_disponibles):
+        m_turno = str(materia.get("turno", "MIXTO")).upper()
         m_id = materia["materia_id"]
 
         # Descarte de materias según compatibilidad de turno
-        if (d_turno != "Mixto" and m_turno != "Mixto" and d_turno != m_turno):
+        if (d_turno != "MIXTO" and m_turno != "MIXTO" and d_turno != m_turno):
             continue
         
         score_total = score_fijo
@@ -74,18 +74,27 @@ def obtener_materias_sugeridas(session: Session, docente_id: int, plan_id: int, 
 
 
         # Historial de Materias (Máx 35 pts)
-        veces_impartida = historial_counts.get(m_id, 0)
-        if veces_impartida > 0:
+        historial_data = historial_counts.get(m_id)
+        total_veces = 0
+        consecutivos = 0
+        if isinstance(historial_data, dict):
+            total_veces = historial_data.get('total', 0)
+            consecutivos = historial_data.get('consecutivos', 0)
+        elif isinstance(historial_data, int):
+            total_veces = historial_data
+
+        if total_veces > 0:
             record_materia = max(1, maximos_historicos.get(m_id, 1))
+            pts_historial = (total_veces / record_materia) * pesos.get("historial", 35)
             
-            pts_historial = (veces_impartida / record_materia) * pesos.get("historial", 35)
-            
+            # Bono por consecutividad (máximo 5 puntos)
+            if consecutivos > 0:
+                pts_historial += min(5.0, consecutivos * 2)
+
             pts_historial = min(35.0, pts_historial)
-            
             score_total += pts_historial
             desglose["historial"] = round(pts_historial, 1)
 
-        
         # Área de Conocimiento (Máx 25 pts)
         if materia.get('area_conocimiento_id') in areas_docente_ids:
             score_total += pesos.get("area", 25)
@@ -95,30 +104,42 @@ def obtener_materias_sugeridas(session: Session, docente_id: int, plan_id: int, 
         if d_turno == m_turno:
             score_total += pesos.get("turno", 15)
             desglose["turno"] = pesos.get("turno", 15)
-        elif d_turno == "Mixto" or m_turno == "Mixto":
+        elif d_turno == "MIXTO" or m_turno == "MIXTO":
             score_total += pesos.get("turno", 15) / 1.5
             desglose["turno"] = round(pesos.get("turno", 15) / 1.5, 1)
 
         # Añadimos al Heap (Multiplicamos score_total por -1 para simular un Max-Heap)
         materia_puntuada = (
             -score_total,
-            -veces_impartida, # Desempate 1
+            -total_veces,     # Desempate 1
             materia['hsm'],   # Desempate 2
             m_id,
+            idx,              # Desempate 3 (índice único para evitar comparación de diccionarios)
             {
                 **materia,
                 "score_total": round(score_total, 1),
                 "desglose": desglose,
-                "veces_impartida": veces_impartida
+                "veces_impartida": total_veces
             }
         )
         sugerencias_heap.append(materia_puntuada)
 
-    # Convertimos en Heap y extraemos las mejores 'n_sugerencias'
+    # Convertimos en Heap y extraemos las mejores 'n_sugerencias' distintas
     heapq.heapify(sugerencias_heap)
     mejores_resultados = []
-    for _ in range(min(n_sugerencias, len(sugerencias_heap))):
+    selected_subjects = set()
+
+    while sugerencias_heap:
         item = heapq.heappop(sugerencias_heap)
-        mejores_resultados.append(item[4])
+        materia_dict = item[5]
+        subject_name = materia_dict['asignatura']
+        
+        if subject_name in selected_subjects:
+            # Si ya seleccionamos esta materia, agregamos esta variante de grupo
+            mejores_resultados.append(materia_dict)
+        else:
+            if len(selected_subjects) < n_sugerencias:
+                selected_subjects.add(subject_name)
+                mejores_resultados.append(materia_dict)
 
     return mejores_resultados

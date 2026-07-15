@@ -1,15 +1,11 @@
 import enum
-from sqlalchemy import Column, Integer, String, Boolean, ForeignKey, BigInteger, Text, Enum as SQLEnum, Table, DateTime
+from sqlalchemy import Column, Integer, String, Boolean, ForeignKey, BigInteger, Text, Enum as SQLEnum, Table, DateTime, Float
 from sqlalchemy.orm import declarative_base, relationship
 from sqlalchemy.orm import Mapped, mapped_column
 
 Base = declarative_base()
 
-class EstatusDocente(enum.Enum):
-    ACTIVO = "ACTIVO"
-    INACTIVO = "INACTIVO"
-    SABATICO = "SABATICO"
-    LICENCIA = "LICENCIA"
+
 
 class EstatusMateria(enum.Enum):
     ACTIVA = "ACTIVA"
@@ -24,6 +20,7 @@ class EstadoAsignacion(enum.Enum):
     PENDIENTE = "PENDIENTE"
     ASIGNADA = "ASIGNADA"
     DESCARGADA = "DESCARGADA"
+    VACANTE = "VACANTE"
 
 class TipoPeriodo(enum.Enum):
     SEMESTRAL = "SEMESTRAL"
@@ -110,6 +107,7 @@ class ProgramaEducativo(Base):
     nombre = Column(String(150), nullable=False)
     clave = Column(String(50), nullable=False)
     activo = Column(Boolean, default=True, nullable=False)
+    nivel = Column(String(50), nullable=False, default="LICENCIATURA")
 
     # Relaciones
     planes_estudio = relationship("PlanEstudios", back_populates="programa_educativo")
@@ -141,6 +139,7 @@ class CicloEscolar(Base):
     anio = Column(Integer, nullable=False)       # Ej. 2026
     
     activo = Column(Boolean, default=False)
+    carga_finalizada: Mapped[Boolean] = mapped_column(Boolean, default=False, nullable=False)
 
     # Relaciones
     grupos_abiertos = relationship("GrupoAbierto", back_populates="ciclo_escolar")
@@ -148,20 +147,35 @@ class CicloEscolar(Base):
     # Agregamos la relación hacia las otras actividades
     asignaciones_otras_actividades = relationship("AsignacionOtraActividad", back_populates="ciclo_escolar")
 
+class EstatusDocente(Base):
+    __tablename__ = 'estatus_docentes'
+
+    id = Column(BigInteger, primary_key=True, autoincrement=True)
+    nombre = Column(String(100), nullable=False, unique=True)
+    permite_carga = Column(Boolean, default=True, nullable=False)
+    max_horas = Column(Float, nullable=True)
+    es_prioritario = Column(Boolean, default=False, nullable=False)
+
+    docentes = relationship("Docente", back_populates="estatus")
+
+
 class Docente(Base):
     __tablename__ = 'docentes'
 
     id = Column(BigInteger, primary_key=True, autoincrement=True)
     nombre = Column(String(100), nullable=False)
     apellidos = Column(String(100), nullable=False)
-    plaza = Column(String(50), nullable=False)
+    plaza: Mapped[String] = mapped_column(String(50), nullable=False)
     categoria_id: Mapped[BigInteger] = mapped_column(BigInteger, ForeignKey('categorias_docentes.id'), nullable=False)
-    hsm_personalizadas: Mapped[int | None] = mapped_column(Integer, nullable=True)
-    estatus = Column(SQLEnum(EstatusDocente), nullable=False)
+    hsm_personalizadas: Mapped[float | None] = mapped_column(Float, nullable=True)
+    estatus_id = Column(BigInteger, ForeignKey('estatus_docentes.id'), nullable=True)
+    correo_institucional = Column(String(150), nullable=True)
+    telefono = Column(String(30), nullable=True)
     usuario_id = Column(BigInteger, ForeignKey('usuarios.id'), unique=True, nullable=True)
     turno: Mapped[Turno] = mapped_column(SQLEnum(Turno), nullable=False, default=Turno.MIXTO)
 
     # Relaciones
+    estatus = relationship("EstatusDocente", back_populates="docentes")
     usuario = relationship("Usuario", back_populates="docente")
     categoria = relationship("CategoriaDocente", back_populates="docentes")
     areas_conocimiento = relationship("AreaConocimiento", secondary=docentes_areas_conocimiento, back_populates="docentes")
@@ -208,8 +222,8 @@ class OtraActividad(Base):
 
     id = Column(BigInteger, primary_key=True, autoincrement=True)
     nombre = Column(String(150), nullable=False)
-    # Regresamos el hsm a Integer (es el valor base del catálogo)
-    hsm = Column(Integer, nullable=False) 
+    # Regresamos el hsm a Float (es el valor base del catálogo)
+    hsm = Column(Float, nullable=False) 
     
     # Relaciones
     asignaciones = relationship("AsignacionOtraActividad", back_populates="actividad")
@@ -221,9 +235,8 @@ class AsignacionOtraActividad(Base):
     actividad_id = Column(BigInteger, ForeignKey('otras_actividades.id'), nullable=False)
     docente_id = Column(BigInteger, ForeignKey('docentes.id'), nullable=False)
     
-    # 2. CAMBIO: Aquí es donde van los campos de contexto temporal y horas reales
     ciclo_escolar_id = Column(BigInteger, ForeignKey('ciclos_escolares.id'), nullable=False)
-    horas_asignadas = Column(Integer, nullable=False)
+    horas_asignadas: Mapped[float] = mapped_column(Float, nullable=False)
     
     observaciones = Column(Text, nullable=True)
 
@@ -248,6 +261,7 @@ class AsignacionCarga(Base):
     materia = relationship("Materia", back_populates="asignaciones")
     grupo_asignado = relationship("GrupoAbierto", back_populates="asignaciones")
     ciclo_escolar = relationship("CicloEscolar", back_populates="asignaciones_carga")
+    horarios = relationship("HorarioClase", back_populates="asignacion_carga", cascade="all, delete-orphan")
     
     docente_titular = relationship("Docente", foreign_keys=[docente_titular_id], back_populates="asignaciones_titular")
     docente_temporal = relationship("Docente", foreign_keys=[docente_temporal_id], back_populates="asignaciones_temporal")
@@ -308,4 +322,45 @@ class OficioDocente(Base):
     ciclo_escolar = relationship("CicloEscolar")
     plantilla = relationship("PlantillaOficio", back_populates="oficios_emitidos")
 
-    
+
+class DiaSemana(enum.Enum):
+    LUNES = "LUNES"
+    MARTES = "MARTES"
+    MIERCOLES = "MIERCOLES"
+    JUEVES = "JUEVES"
+    VIERNES = "VIERNES"
+    SABADO = "SABADO"
+
+
+class TipoPreferencia(enum.Enum):
+    PREFERIR = "PREFERIR"
+    EVITAR = "EVITAR"
+    NEUTRAL = "NEUTRAL"
+
+
+class PreferenciaDocente(Base):
+    __tablename__ = 'preferencias_docentes'
+
+    id: Mapped[BigInteger] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
+    docente_id: Mapped[BigInteger] = mapped_column(BigInteger, ForeignKey('docentes.id', ondelete='CASCADE'), nullable=False)
+    ciclo_escolar_id: Mapped[BigInteger] = mapped_column(BigInteger, ForeignKey('ciclos_escolares.id', ondelete='CASCADE'), nullable=False)
+    dia_semana: Mapped[DiaSemana] = mapped_column(SQLEnum(DiaSemana), nullable=False)
+    tipo_preferencia: Mapped[TipoPreferencia] = mapped_column(SQLEnum(TipoPreferencia), nullable=False, default=TipoPreferencia.NEUTRAL)
+    horas_bloqueadas: Mapped[str | None] = mapped_column(String(255), nullable=True)
+
+    # Relaciones
+    docente = relationship("Docente")
+    ciclo_escolar = relationship("CicloEscolar")
+
+
+class HorarioClase(Base):
+    __tablename__ = 'horarios_clases'
+
+    id: Mapped[BigInteger] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
+    asignacion_carga_id: Mapped[BigInteger] = mapped_column(BigInteger, ForeignKey('asignaciones_carga.id', ondelete='CASCADE'), nullable=False)
+    dia_semana: Mapped[DiaSemana] = mapped_column(SQLEnum(DiaSemana), nullable=False)
+    hora_inicio: Mapped[Integer] = mapped_column(Integer, nullable=False)
+    hora_fin: Mapped[Integer] = mapped_column(Integer, nullable=False)
+
+    # Relaciones
+    asignacion_carga = relationship("AsignacionCarga", back_populates="horarios")  
