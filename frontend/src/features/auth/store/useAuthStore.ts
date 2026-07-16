@@ -1,11 +1,13 @@
 import { create } from 'zustand';
 import api from '../../../services/api';
+import type { Docente } from '../../../types/docentes';
 
 interface UserProfile {
   email: string;
   nombre?: string;
   rol: string;
   requiere_cambio_password: boolean;
+  docente?: Docente;
 }
 
 interface AuthState {
@@ -17,6 +19,7 @@ interface AuthState {
   logout: () => void;
   cargarPerfil: () => Promise<boolean>;
   cambiarPasswordPropia: (passwordActual: string, nuevaPassword: string) => Promise<void>;
+  actualizarPadDocente: (datosPad: any) => Promise<void>;
 }
 
 export const useAuthStore = create<AuthState>((set, get) => ({
@@ -55,14 +58,15 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     set({ isLoading: true });
     try {
       const response = await api.get('/auth/me');
-      const { email_institucional, rol_clave, requiere_cambio_password, nombre } = response.data;
+      const { email_institucional, rol_clave, requiere_cambio_password, nombre, docente } = response.data;
       
       set({
         user: { 
           email: email_institucional, 
           rol: rol_clave, 
           nombre: nombre,
-          requiere_cambio_password: requiere_cambio_password 
+          requiere_cambio_password: requiere_cambio_password,
+          docente: docente
         },
         isLoading: false
       });
@@ -88,6 +92,26 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         if (state.user) {
           return {
             user: { ...state.user, requiere_cambio_password: false },
+            isLoading: false
+          };
+        }
+        return { isLoading: false };
+      });
+    } catch (error) {
+      set({ isLoading: false });
+      throw error;
+    }
+  },
+
+  actualizarPadDocente: async (datosPad) => {
+    set({ isLoading: true });
+    try {
+      const response = await api.put('/auth/me/docente', datosPad);
+      // Update local state with the new docente info
+      set((state) => {
+        if (state.user) {
+          return {
+            user: { ...state.user, docente: response.data },
             isLoading: false
           };
         }

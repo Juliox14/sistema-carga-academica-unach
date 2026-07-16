@@ -77,7 +77,7 @@ def registrar_usuario(db: Session, registro: UsuarioRegistro) -> Usuario:
     nuevo_usuario.rol_clave = rol.clave
     nuevo_usuario.rol_nombre = rol.nombre
     nuevo_usuario.nombre = f"{nuevo_usuario.docente.nombre} {nuevo_usuario.docente.apellidos}" if nuevo_usuario.docente else None
-    return nuevo_usuario, password_usada
+    return nuevo_usuario, password_usada #type: ignore
 
 
 def obtener_docentes_sin_usuario(db: Session):
@@ -200,11 +200,39 @@ def cambiar_password_propia(db: Session, usuario_id: int, password_actual: str, 
     if not verify_password(password_actual, usuario.password_hash):
         raise ValueError("La contraseña actual es incorrecta")
     usuario.password_hash = hash_password(nueva_password)
-    usuario.requiere_cambio_password = False
+    usuario.requiere_cambio_password = False 
     db.commit()
     db.refresh(usuario)
     usuario.rol_clave = usuario.rol.clave if usuario.rol else None
     usuario.rol_nombre = usuario.rol.nombre if usuario.rol else None
     return usuario
 
-
+def actualizar_pad_docente_actual(db: Session, usuario_id: int, datos_pad: dict):
+    """
+    Actualiza la información PAD y de contacto del docente vinculado al usuario actual.
+    """
+    usuario = db.query(Usuario).filter(Usuario.id == usuario_id).first()
+    if not usuario:
+        raise ValueError("El usuario no existe")
+    
+    docente = usuario.docente
+    if not docente:
+        raise ValueError("El usuario no tiene un perfil de docente vinculado")
+    
+    # Actualizar campos
+    if 'rfc' in datos_pad and datos_pad['rfc'] is not None:
+        docente.rfc = datos_pad['rfc'].upper()
+    if 'curp' in datos_pad and datos_pad['curp'] is not None:
+        docente.curp = datos_pad['curp'].upper()
+    if 'fecha_ingreso' in datos_pad and datos_pad['fecha_ingreso'] is not None:
+        docente.fecha_ingreso = datos_pad['fecha_ingreso']
+    if 'perfil_academico' in datos_pad and datos_pad['perfil_academico'] is not None:
+        docente.perfil_academico = datos_pad['perfil_academico'].upper()
+    if 'ultimo_grado_estudio' in datos_pad and datos_pad['ultimo_grado_estudio'] is not None:
+        docente.ultimo_grado_estudio = datos_pad['ultimo_grado_estudio'].upper()
+    if 'telefono' in datos_pad and datos_pad['telefono'] is not None:
+        docente.telefono = datos_pad['telefono']
+        
+    db.commit()
+    db.refresh(docente)
+    return docente

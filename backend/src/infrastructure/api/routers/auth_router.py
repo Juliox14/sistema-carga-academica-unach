@@ -12,7 +12,8 @@ from src.infrastructure.api.schemas.auth_schema import (
     CambiarRolRequest,
     CambiarPasswordPropiaRequest,
     RestablecerPasswordRequest,
-    UsuarioCreadoResponse
+    UsuarioCreadoResponse,
+    DocentePADUpdateRequest
 )
 from src.application.utils.pdf_cifrado import generar_pdf_credenciales_protegido
 from src.infrastructure.api.schemas.docentes_schema import DocenteResponse
@@ -170,6 +171,58 @@ def obtener_perfil(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Error al obtener el perfil del usuario"
         )
+
+
+@router.put("/me/docente", response_model=DocenteResponse)
+def actualizar_mi_perfil_docente(
+    datos_pad: DocentePADUpdateRequest,
+    request: Request,
+    current_user: Usuario = Depends(get_current_user),
+    db: Session = Depends(get_db),
+    logger: LoggerPort = Depends(get_logger),
+):
+    """
+    Actualiza la información PAD y de contacto del docente vinculado al usuario actual.
+    Solo permitido si el usuario tiene un perfil de docente vinculado (rol DOCENTE).
+    """
+    trace_id = getattr(request.state, "trace_id", None)
+    try:
+        logger.info(
+            f"Intentando actualizar PAD del docente para usuario: {current_user.email_institucional}",
+            context={"usuario_id": current_user.id},
+            trace_id=trace_id,
+        )
+        # Convertir a dict omitiendo None
+        datos_dict = datos_pad.model_dump(exclude_unset=True)
+        docente_actualizado = auth_service.actualizar_pad_docente_actual(db, current_user.id, datos_dict)
+        
+        logger.info(
+            f"PAD de docente actualizado exitosamente",
+            context={"usuario_id": current_user.id, "docente_id": docente_actualizado.id},
+            trace_id=trace_id,
+        )
+        return docente_actualizado
+    except ValueError as e:
+        logger.warning(
+            f"Error al actualizar PAD del docente: {str(e)}",
+            context={"usuario_id": current_user.id, "error": str(e)},
+            trace_id=trace_id,
+        )
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+    except Exception as e:
+        logger.error(
+            f"Error inesperado al actualizar PAD de docente: {str(e)}",
+            context={"usuario_id": current_user.id, "error": str(e)},
+            trace_id=trace_id,
+        )
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Error interno del servidor",
+        )
+
 
 
 @router.get("/usuarios", response_model=List[UsuarioResponse], dependencies=[Depends(require_roles(["SUPER_ADMIN"]))])

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import {
-  Building2, ChevronRight, LayoutDashboard, ClipboardList, Layers,
+  Building2, ChevronLeft, LayoutDashboard, ClipboardList, Layers,
   BookOpen, FileText, Library, Users, BarChart2, Bell, Settings,
   PlayCircle, Calendar, Briefcase, Activity, Shield, Award, Eye, Sliders
 } from 'lucide-react';
@@ -63,14 +63,9 @@ export default function Sidebar() {
   const { user } = useAuthStore();
   const userRole = user?.rol;
 
-  // Filtrar navItems
   const filteredNavItems = navItems.filter(item => {
-    // Mi Carga y Firma, y Mis Preferencias solo es para Docentes
-    if (item.label === 'Mi Carga y Firma' && userRole !== 'DOCENTE') {
-      return false;
-    }
-
-    if (item.label === 'Mis Preferencias' && userRole !== 'DOCENTE') {
+    // Rutas exclusivas para Docentes
+    if ((item.label === 'Mi Carga y Firma' || item.label === 'Mis Preferencias') && userRole !== 'DOCENTE') {
       return false;
     }
     
@@ -114,10 +109,10 @@ export default function Sidebar() {
         onClick={() => setCollapsed(!collapsed)}
         className="absolute top-5 -right-2.5 z-50 w-5 h-5 rounded-full flex items-center justify-center bg-[#D4E600] text-[#060F5C] shadow-lg shadow-[#D4E600]/30 hover:scale-110 transition-transform border-2 border-[#060F5C] cursor-pointer"
       >
-        <ChevronRight size={10} strokeWidth={3} className={`transition-transform duration-300 ${collapsed ? 'rotate-180' : ''}`} />
+        <ChevronLeft size={10} strokeWidth={3} className={`transition-transform duration-300 ${collapsed ? 'rotate-180' : ''}`} />
       </button>
 
-      <aside className="relative flex flex-col h-full w-full font-sans select-none overflow-hidden"
+      <aside className="relative flex flex-col h-full w-full font-sans select-none overflow-hidden rounded-r-2xl"
         style={{ background: '#002582', boxShadow: '4px 0 24px rgba(6,15,92,0.35)' }}>
 
         <SidebarHeader collapsed={collapsed} />

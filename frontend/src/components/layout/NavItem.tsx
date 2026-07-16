@@ -41,6 +41,12 @@ export default function NavItem({ item, collapsed, depth = 0 }: any) {
             {item.badge}
           </span>
         )}
+        
+        {item.customBadge && (
+          <span className="shrink-0 flex items-center justify-center">
+            {item.customBadge}
+          </span>
+        )}
 
         {hasChildren && (
           <ChevronDown

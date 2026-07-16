@@ -1,6 +1,6 @@
-import { useState } from 'react';
-import { LogOut, Lock, X, Loader2 } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useRef, useEffect } from 'react';
+import { LogOut, Lock, X, Loader2, Settings, User as UserIcon, AlertCircle } from 'lucide-react';
+import { useNavigate, Link } from 'react-router-dom';
 import { useAuthStore } from '../../features/auth/store/useAuthStore';
 import toast from 'react-hot-toast';
 
@@ -12,11 +12,22 @@ export default function UserProfileCard({ collapsed }: UserProfileCardProps) {
   const navigate = useNavigate();
   const { user, logout, cambiarPasswordPropia } = useAuthStore();
 
-  // Estados para modal de cambio de contraseña propio
   const [modalOpen, setModalOpen] = useState(false);
   const [passwordActual, setPasswordActual] = useState('');
   const [nuevaPassword, setNuevaPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const handleLogout = () => {
     logout();
@@ -62,17 +73,27 @@ export default function UserProfileCard({ collapsed }: UserProfileCardProps) {
 
   if (!user) return null;
 
+  const isPadIncomplete = user.rol === 'DOCENTE' && user.docente && (
+    !user.docente.rfc || !user.docente.curp || !user.docente.fecha_ingreso || 
+    !user.docente.perfil_academico || !user.docente.ultimo_grado_estudio
+  );
+
   return (
     <>
       <div 
         className={`mt-3 rounded-xl p-3 flex items-center gap-2.5 ${collapsed ? 'justify-center' : ''}`} 
         style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.1)' }}
       >
-        <div 
-          className="w-8 h-8 rounded-full flex items-center justify-center shrink-0 font-bold text-sm text-[#060F5C] select-none" 
-          style={{ background: 'linear-gradient(135deg, #D4E600, #A8C200)' }}
-        >
-          {getInitials(user.email)}
+        <div className="relative">
+          <div 
+            className="w-8 h-8 rounded-full flex items-center justify-center shrink-0 font-bold text-sm text-[#060F5C] select-none relative" 
+            style={{ background: 'linear-gradient(135deg, #D4E600, #A8C200)' }}
+          >
+            {getInitials(user.email)}
+          </div>
+          {isPadIncomplete && (
+            <div className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-orange-500 rounded-full border-2 border-[#002d55] shadow-sm animate-pulse" title="Información personal incompleta"></div>
+          )}
         </div>
         {!collapsed && (
           <div className="min-w-0 flex-1">
@@ -85,21 +106,50 @@ export default function UserProfileCard({ collapsed }: UserProfileCardProps) {
           </div>
         )}
         {!collapsed && (
-          <div className="flex items-center gap-1.5 shrink-0">
+          <div className="flex items-center shrink-0 relative" ref={menuRef}>
             <button 
-              onClick={() => setModalOpen(true)}
-              className="p-1.5 rounded-lg text-[#6B83D6] hover:text-[#D4E600] hover:bg-white/10 transition-colors cursor-pointer" 
-              title="Cambiar mi contraseña"
+              onClick={() => setMenuOpen(!menuOpen)}
+              className="p-1.5 rounded-lg text-[#6B83D6] hover:text-[#D4E600] hover:bg-white/10 transition-colors cursor-pointer relative" 
+              title="Opciones de usuario"
             >
-              <Lock size={13} />
+              <Settings size={14} />
+              {isPadIncomplete && (
+                <span className="absolute top-1 right-1 w-1.5 h-1.5 bg-orange-500 rounded-full"></span>
+              )}
             </button>
-            <button 
-              onClick={handleLogout}
-              className="p-1.5 rounded-lg text-[#6B83D6] hover:text-[#D4E600] hover:bg-white/10 transition-colors cursor-pointer" 
-              title="Cerrar sesión"
-            >
-              <LogOut size={13} />
-            </button>
+
+            {menuOpen && (
+              <div className="absolute bottom-full right-0 mb-2 w-48 bg-white rounded-xl shadow-xl border border-gray-100 py-1.5 z-50 overflow-hidden animate-fade-in-up">
+                {user.rol === 'DOCENTE' && (
+                  <Link 
+                    to="/mi-perfil"
+                    onClick={() => setMenuOpen(false)}
+                    className="w-full flex items-center gap-2.5 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors cursor-pointer relative"
+                  >
+                    <UserIcon size={14} className="text-gray-400" />
+                    <span>Mi Perfil</span>
+                    {isPadIncomplete && (
+                      <AlertCircle size={12} className="text-orange-500 absolute right-3" />
+                    )}
+                  </Link>
+                )}
+                <button 
+                  onClick={() => { setModalOpen(true); setMenuOpen(false); }}
+                  className="w-full flex items-center gap-2.5 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors cursor-pointer"
+                >
+                  <Lock size={14} className="text-gray-400" />
+                  <span>Cambiar Contraseña</span>
+                </button>
+                <div className="h-px bg-gray-100 my-1 mx-2"></div>
+                <button 
+                  onClick={() => { handleLogout(); setMenuOpen(false); }}
+                  className="w-full flex items-center gap-2.5 px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
+                >
+                  <LogOut size={14} className="text-red-400" />
+                  <span>Cerrar Sesión</span>
+                </button>
+              </div>
+            )}
           </div>
         )}
       </div>

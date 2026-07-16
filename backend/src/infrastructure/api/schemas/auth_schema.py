@@ -1,5 +1,7 @@
 from pydantic import BaseModel, EmailStr, Field, ConfigDict
 from typing import Optional
+from datetime import date
+from src.infrastructure.api.schemas.docentes_schema import DocenteResponse
 
 class UsuarioRegistro(BaseModel):
     email_institucional: EmailStr = Field(..., description="Correo institucional único del usuario")
@@ -26,8 +28,18 @@ class UsuarioResponse(BaseModel):
     rol_nombre: Optional[str] = None
     requiere_cambio_password: bool = False
     nombre: Optional[str] = None
+    docente: Optional[DocenteResponse] = None
 
     model_config = ConfigDict(from_attributes=True)
+
+class DocentePADUpdateRequest(BaseModel):
+    rfc: Optional[str] = Field(None, max_length=13)
+    curp: Optional[str] = Field(None, max_length=18)
+    fecha_ingreso: Optional[date] = None
+    perfil_academico: Optional[str] = Field(None, max_length=200)
+    ultimo_grado_estudio: Optional[str] = Field(None, max_length=150)
+    correo_institucional: Optional[str] = None
+    telefono: Optional[str] = None
 
 class UsuarioCreadoResponse(BaseModel):
     usuario: UsuarioResponse

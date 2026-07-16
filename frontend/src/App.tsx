@@ -31,6 +31,7 @@ import HorariosReport from './features/reportes/HorariosReport';
 
 // Import Scheduling & Preferences Components
 import MisPreferencias from './features/docentes/components/MisPreferencias';
+import MiPerfilDashboard from './features/docentes/MiPerfilDashboard';
 import HorariosDashboard from './features/horarios/HorariosDashboard';
 
 // Import InicioDashboard
@@ -116,6 +117,10 @@ const router = createBrowserRouter([
               {
                 path: 'preferencias',
                 element: <MisPreferencias />,
+              },
+              {
+                path: 'mi-perfil',
+                element: <MiPerfilDashboard />,
               },
             ],
           },
