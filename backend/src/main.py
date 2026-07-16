@@ -38,7 +38,7 @@ app.include_router(asignaciones_router.router, dependencies=[Depends(require_rol
 app.include_router(auth_router.router)
 app.include_router(oficios_router.router)
 app.include_router(categorias_router.router, dependencies=[Depends(require_roles(CATALOG_ROLES))])
-app.include_router(ciclos_router.router, dependencies=[Depends(require_roles(CATALOG_ROLES))])
+app.include_router(ciclos_router.router)
 app.include_router(configuracion_router.router, dependencies=[Depends(require_roles(["SUPER_ADMIN", "SECRETARIA_ACADEMICA"]))])
 app.include_router(docentes_router.router, dependencies=[Depends(require_roles(CATALOG_ROLES))])
 app.include_router(materias_router.router, dependencies=[Depends(require_roles(CATALOG_ROLES))])
