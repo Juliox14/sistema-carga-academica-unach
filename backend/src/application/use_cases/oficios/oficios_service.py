@@ -162,11 +162,14 @@ def compilar_oficio_html(data: PlantillaOficioCreate) -> str:
     
     return style_block + page1 + page2
 
-def obtener_plantillas(db: Session):
-    """Lista todas las plantillas."""
-    return db.query(PlantillaOficio).all()
+def obtener_plantillas(db: Session, unidad_id: int | None = None):
+    """Lista todas las plantillas disponibles para la unidad actual o globales."""
+    q = db.query(PlantillaOficio)
+    if unidad_id is not None:
+        q = q.filter((PlantillaOficio.unidad_academica_id == unidad_id) | (PlantillaOficio.unidad_academica_id.is_(None)))
+    return q.all()
 
-def crear_plantilla(db: Session, data: PlantillaOficioCreate) -> PlantillaOficio:
+def crear_plantilla(db: Session, data: PlantillaOficioCreate, unidad_id: int | None = None) -> PlantillaOficio:
     """Crea una nueva plantilla compilando su HTML a partir de campos estructurados."""
     compilado = compilar_oficio_html(data)
     nueva = PlantillaOficio(
@@ -182,7 +185,8 @@ def crear_plantilla(db: Session, data: PlantillaOficioCreate) -> PlantillaOficio
         despedida=data.despedida,
         remitente_nombre=data.remitente_nombre,
         remitente_cargo=data.remitente_cargo,
-        con_copia_para=data.con_copia_para
+        con_copia_para=data.con_copia_para,
+        unidad_academica_id=unidad_id
     )
     db.add(nueva)
     db.commit()
@@ -250,7 +254,8 @@ def emitir_oficios_ciclo(
     categorias_siglas: Optional[List[str]] = None,
     folio_prefijo: Optional[str] = None,
     folio_inicial: Optional[int] = None,
-    folio_sufijo: Optional[str] = None
+    folio_sufijo: Optional[str] = None,
+    unidad_id: int | None = None
 ) -> int:
     """Genera oficios en lote para todos los docentes activos en el ciclo activo, opcionalmente filtrados por siglas de categoría."""
     ciclo = obtener_ciclo_activo(db)
@@ -389,7 +394,8 @@ def emitir_oficios_ciclo(
             plantilla_id=plantilla.id,
             estado=EstadoOficio.EMITIDO,
             numero_oficio=numero_oficio,
-            fecha_emision=datetime.now(timezone.utc)
+            fecha_emision=datetime.now(timezone.utc),
+            unidad_academica_id=unidad_id 
         )
         db.add(nuevo_oficio)
         total_emitidos += 1
@@ -397,9 +403,12 @@ def emitir_oficios_ciclo(
     db.commit()
     return total_emitidos
 
-def obtener_auditoria_oficios(db: Session):
-    """Lista todos los oficios emitidos con relaciones pobladas para auditoría administrativa."""
-    oficios = db.query(OficioDocente).all()
+def obtener_oficios_emitidos(db: Session, ciclo_id: int, unidad_id: int | None = None):
+    """Retorna todos los oficios emitidos en un ciclo, con su detalle."""
+    q = db.query(OficioDocente).filter(OficioDocente.ciclo_id == ciclo_id)
+    if unidad_id is not None:
+        q = q.filter(OficioDocente.unidad_academica_id == unidad_id)
+    oficios = q.all()
     for o in oficios:
         # Interpolate content dynamically on read
         o.docente_nombre = f"{o.docente.apellidos} {o.docente.nombre}".upper() if o.docente else "N/A"

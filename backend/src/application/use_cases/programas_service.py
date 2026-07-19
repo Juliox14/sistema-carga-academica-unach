@@ -25,8 +25,11 @@ def crear_nuevo_programa(db: Session, programa_data: ProgramaEducativoCreate):
     return nuevo_programa
 
 
-def obtener_todos_los_programas(db: Session):
-    return db.query(ProgramaEducativo).all()
+def obtener_todos_los_programas(db: Session, unidad_id: int | None = None):
+    q = db.query(ProgramaEducativo)
+    if unidad_id is not None:
+        q = q.filter(ProgramaEducativo.unidad_academica_id == unidad_id)
+    return q.all()
 
 
 def obtener_programa_por_id(db: Session, programa_id: int):
@@ -69,7 +72,7 @@ def eliminar_programa(db: Session, programa_id: int):
     # 1. Obtener todos los planes asociados a este programa y eliminarlos en cascada
     planes = db.query(PlanEstudios).filter(PlanEstudios.programa_educativo_id == programa_id).all()
     for plan in planes:
-        eliminar_plan_estudios(db, plan.id)
+        eliminar_plan_estudios(db, plan.id) #type: ignore
 
     # 2. Eliminar el programa
     db.delete(db_programa)
@@ -106,18 +109,18 @@ async def importar_programas(db: Session, byte_object: BytesIO):
 async def exportar_programas(programas: list):
     wb = xl.Workbook()
     sheet = wb.active
-    sheet.title = "programas_educativos"
+    sheet.title = "programas_educativos" #type: ignore
 
     headers = ["id", "nombre", "clave", "activo", "nivel"]
     for col_idx, header in enumerate(headers, start=1):
-        sheet.cell(row=1, column=col_idx, value=header)
+        sheet.cell(row=1, column=col_idx, value=header) #type: ignore
 
     for row_idx, programa in enumerate(programas, start=2):
-        sheet.cell(row=row_idx, column=1, value=programa.id)
-        sheet.cell(row=row_idx, column=2, value=programa.nombre)
-        sheet.cell(row=row_idx, column=3, value=programa.clave)
-        sheet.cell(row=row_idx, column=4, value=programa.activo)
-        sheet.cell(row=row_idx, column=5, value=programa.nivel)
+        sheet.cell(row=row_idx, column=1, value=programa.id) #type: ignore
+        sheet.cell(row=row_idx, column=2, value=programa.nombre) #type: ignore
+        sheet.cell(row=row_idx, column=3, value=programa.clave) #type: ignore
+        sheet.cell(row=row_idx, column=4, value=programa.activo) #type: ignore
+        sheet.cell(row=row_idx, column=5, value=programa.nivel) #type: ignore
 
     buffer = BytesIO()
     wb.save(buffer)

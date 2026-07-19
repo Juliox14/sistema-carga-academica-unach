@@ -5,4 +5,5 @@ export interface Materia {
   hsm: number;
   plan_estudios_id: number;
   area_conocimiento_id?: number;
+  es_especial?: boolean;
 }

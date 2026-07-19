@@ -1,13 +1,25 @@
 import { useState, useEffect } from 'react';
-import { Save, AlertCircle, Settings, Clock, RefreshCw, BrainCircuit } from 'lucide-react';
+import { Save, AlertCircle, Settings, Clock, RefreshCw, BrainCircuit, Briefcase } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { actualizarConfiguraciones } from '../../services/configuracion.service';
+import { categoriasService } from '../../services/categorias.service';
+import type { CategoriaDocente } from '../../types/categorias';
 import { useConfigStore } from './store/useConfigStore';
 import EstatusDocentesDashboard from './components/EstatusDocentesDashboard';
 
 export default function ConfiguracionDashboard() {
     const { configs, fetchConfigs, updateConfigItem, isLoading } = useConfigStore();
     const [activeTab, setActiveTab] = useState<'reglas' | 'estatus'>('reglas');
+    const [categoriasList, setCategoriasList] = useState<CategoriaDocente[]>([]);
+
+    useEffect(() => {
+        categoriasService.obtenerTodos()
+            .then(data => setCategoriasList(data))
+            .catch(err => {
+                console.error("Error al obtener categorías:", err);
+                toast.error("No se pudieron cargar las categorías docentes");
+            });
+    }, []);
 
     // Estados locales para la vista (se inicializan con los valores del store global)
     const [motivoObligatorio, setMotivoObligatorio] = useState(configs.DESCARGA_MOTIVO_OBLIGATORIO);
@@ -55,6 +67,15 @@ export default function ConfiguracionDashboard() {
 
         try {
             await actualizarConfiguraciones(payload);
+
+            // Guardar reglas de asignación por categoría
+            const payloadReglas = categoriasList.map(c => ({
+                id: c.id!,
+                permite_titular: c.permite_titular,
+                permite_suplente: c.permite_suplente
+            }));
+            await categoriasService.actualizarReglasBulk(payloadReglas);
+
             updateConfigItem("DESCARGA_MOTIVO_OBLIGATORIO", motivoObligatorio);
             updateConfigItem("PERMITIR_HORAS_EXCEDENTES", permitirExcedentes);
             updateConfigItem("MAX_HORAS_EXCEDENTES", maxHorasExcedentes);
@@ -233,7 +254,70 @@ export default function ConfiguracionDashboard() {
                             </div>
                         </div>
 
-                        {/* Sección 4: IA Sugerencias */}
+                        {/* Sección 4: Reglas por Categoría */}
+                        <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                            <div className="bg-gray-50 px-6 py-4 border-b border-gray-200 flex items-center gap-2">
+                                <Briefcase size={18} className="text-[#002d55]" />
+                                <h3 className="font-bold text-gray-800">Reglas de Asignación por Categoría Docente</h3>
+                            </div>
+
+                            <div className="p-6 space-y-4">
+                                <p className="text-sm text-gray-500">
+                                    Configure qué tipos de carga académica se pueden asignar a cada categoría de contratación en el sistema.
+                                </p>
+
+                                <div className="border border-gray-200 rounded-xl overflow-hidden shadow-xs">
+                                    <table className="w-full text-sm text-left border-collapse">
+                                        <thead className="bg-gray-50/70 border-b border-gray-200 text-gray-600 text-[11px] uppercase tracking-wider font-bold">
+                                            <tr>
+                                                <th className="py-3.5 px-4 w-24">Siglas</th>
+                                                <th className="py-3.5 px-4">Categoría</th>
+                                                <th className="py-3.5 px-4 text-center w-48">Asignar como Titular<br/><span className="text-[10px] text-gray-400 capitalize normal-case font-normal">(Materias regulares)</span></th>
+                                                <th className="py-3.5 px-4 text-center w-48">Asignar como Suplente<br/><span className="text-[10px] text-gray-400 capitalize normal-case font-normal">(Suplir descargas)</span></th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-gray-150">
+                                            {categoriasList.map((cat, idx) => (
+                                                <tr key={cat.id || idx} className="hover:bg-gray-50/50 transition-colors">
+                                                    <td className="py-3 px-4 font-bold text-gray-700">{cat.siglas}</td>
+                                                    <td className="py-3 px-4 font-medium text-[#002d55]">{cat.nombre}</td>
+                                                    <td className="py-3 px-4 text-center">
+                                                        <label className="relative inline-flex items-center cursor-pointer justify-center">
+                                                            <input 
+                                                                type="checkbox" 
+                                                                checked={cat.permite_titular} 
+                                                                onChange={(e) => {
+                                                                    const checked = e.target.checked;
+                                                                    setCategoriasList(prev => prev.map(c => c.id === cat.id ? { ...c, permite_titular: checked } : c));
+                                                                }} 
+                                                                className="sr-only peer" 
+                                                            />
+                                                            <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-emerald-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-600"></div>
+                                                        </label>
+                                                    </td>
+                                                    <td className="py-3 px-4 text-center">
+                                                        <label className="relative inline-flex items-center cursor-pointer justify-center">
+                                                            <input 
+                                                                type="checkbox" 
+                                                                checked={cat.permite_suplente} 
+                                                                onChange={(e) => {
+                                                                    const checked = e.target.checked;
+                                                                    setCategoriasList(prev => prev.map(c => c.id === cat.id ? { ...c, permite_suplente: checked } : c));
+                                                                }} 
+                                                                className="sr-only peer" 
+                                                            />
+                                                            <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-indigo-600"></div>
+                                                        </label>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Sección 5: IA Sugerencias */}
                         <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
                             <div className="bg-gray-50 px-6 py-4 border-b border-gray-200 flex items-center justify-between">
                                 <div className="flex items-center gap-2">

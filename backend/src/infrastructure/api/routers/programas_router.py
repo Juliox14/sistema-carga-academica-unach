@@ -11,9 +11,18 @@ from src.infrastructure.api.schemas.programas_schema import (
     ProgramaEducativoResponse,
     ProgramaEducativoUpdate,
 )
-from ...database.database import get_db
+from src.infrastructure.security import get_current_user
+from src.infrastructure.database.orm_models import Usuario
+from src.infrastructure.database.database import get_db
 
 router = APIRouter(prefix="/api/programas", tags=["Programas Educativos"])
+
+
+def _unidad_filtro(current_user: Usuario) -> int | None:
+    """Devuelve el unidad_id para filtrar segun el rol del usuario."""
+    if current_user.rol and current_user.rol.clave == "SUPER_ADMIN":
+        return None
+    return current_user.unidad_academica_id
 
 
 @router.post("/", response_model=ProgramaEducativoResponse)
@@ -26,8 +35,12 @@ def crear_programa(programa: ProgramaEducativoCreate, db: Session = Depends(get_
 
 
 @router.get("/", response_model=List[ProgramaEducativoResponse])
-def listar_programas(db: Session = Depends(get_db)):
-    programas = programas_service.obtener_todos_los_programas(db)
+def listar_programas(
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(get_current_user)
+):
+    unidad_id = _unidad_filtro(current_user)
+    programas = programas_service.obtener_todos_los_programas(db, unidad_id=unidad_id)
     return programas
 
 

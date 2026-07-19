@@ -9,21 +9,21 @@ from src.infrastructure.api.schemas.oficios_schema import (
 from src.application.use_cases.oficios import oficios_service
 from src.infrastructure.security import require_roles, get_current_user
 from src.infrastructure.database.orm_models import Usuario
+from src.application.use_cases import horarios_service
 
 router = APIRouter(prefix="/api/oficios", tags=["Oficios y Firmas"])
 
 # ─── GESTIÓN DE PLANTILLAS (SUPER_ADMIN Y SECRETARIA_ACADEMICA) ───
 
 @router.get("/plantillas", response_model=List[PlantillaOficioResponse], dependencies=[Depends(require_roles(["SUPER_ADMIN", "SECRETARIA_ACADEMICA"]))])
-def listar_plantillas(db: Session = Depends(get_db)):
-    """Retorna todas las plantillas (machotes) de oficios registradas."""
-    return oficios_service.obtener_plantillas(db)
-
+def listar_plantillas(db: Session = Depends(get_db), current_user: Usuario = Depends(get_current_user)):
+    """Lista las plantillas disponibles para firmar documentos oficiales en el ciclo."""
+    return oficios_service.obtener_plantillas(db, current_user.unidad_academica_id)
 
 @router.post("/plantillas", response_model=PlantillaOficioResponse, dependencies=[Depends(require_roles(["SUPER_ADMIN", "SECRETARIA_ACADEMICA"]))])
-def crear_plantilla(data: PlantillaOficioCreate, db: Session = Depends(get_db)):
-    """Crea una nueva plantilla para un tipo de contrato."""
-    return oficios_service.crear_plantilla(db, data)
+def agregar_plantilla(data: PlantillaOficioCreate, db: Session = Depends(get_db), current_user: Usuario = Depends(get_current_user)):
+    """Registra una nueva plantilla, compilando automáticamente su estructura HTML."""
+    return oficios_service.crear_plantilla(db, data, current_user.unidad_academica_id)
 
 
 @router.put("/plantillas/{plantilla_id}/activar", response_model=PlantillaOficioResponse, dependencies=[Depends(require_roles(["SUPER_ADMIN", "SECRETARIA_ACADEMICA"]))])
@@ -56,7 +56,7 @@ def eliminar_plantilla(plantilla_id: int, db: Session = Depends(get_db)):
 # ─── EMISIÓN Y AUDITORÍA (SUPER_ADMIN Y SECRETARIA_ACADEMICA) ───
 
 @router.post("/emitir", status_code=status.HTTP_200_OK, dependencies=[Depends(require_roles(["SUPER_ADMIN", "SECRETARIA_ACADEMICA"]))])
-def emitir_oficios(payload: Optional[EmitirOficiosRequest] = None, db: Session = Depends(get_db)):
+def emitir_oficios(payload: Optional[EmitirOficiosRequest] = None, db: Session = Depends(get_db), current_user: Usuario = Depends(get_current_user)):
     """Genera en batch los oficios para los docentes de las categorías indicadas con folios manuales."""
     try:
         categorias = payload.categorias if payload else None
@@ -69,7 +69,8 @@ def emitir_oficios(payload: Optional[EmitirOficiosRequest] = None, db: Session =
             categorias_siglas=categorias,
             folio_prefijo=prefijo,
             folio_inicial=inicial,
-            folio_sufijo=sufijo
+            folio_sufijo=sufijo,
+            unidad_id=current_user.unidad_academica_id
         )
         return {
             "mensaje": f"Proceso completado. Se emitieron {total} nuevos oficios de carga académica para este ciclo escolar.",
@@ -80,9 +81,12 @@ def emitir_oficios(payload: Optional[EmitirOficiosRequest] = None, db: Session =
 
 
 @router.get("/emitidos", response_model=List[OficioDocenteResponse], dependencies=[Depends(require_roles(["SUPER_ADMIN", "SECRETARIA_ACADEMICA"]))])
-def listar_oficios_emitidos(db: Session = Depends(get_db)):
+def listar_oficios_emitidos(db: Session = Depends(get_db), current_user: Usuario = Depends(get_current_user)):
     """Retorna la lista de todos los oficios emitidos en el ciclo para control de firmas."""
-    return oficios_service.obtener_auditoria_oficios(db)
+    
+    ciclo = horarios_service.obtener_ciclo_activo(db)
+    if not ciclo: return []
+    return oficios_service.obtener_oficios_emitidos(db, ciclo.id, current_user.unidad_academica_id) #type: ignore
 
 
 # ─── PORTAL DEL DOCENTE (ACCESO LOGUEADO GENERAL) ───
@@ -90,7 +94,7 @@ def listar_oficios_emitidos(db: Session = Depends(get_db)):
 @router.get("/mi-oficio", response_model=OficioDocenteResponse)
 def obtener_mi_oficio(current_user: Usuario = Depends(get_current_user), db: Session = Depends(get_db)):
     """Retorna el oficio activo asignado al docente logueado, interpolado con sus materias."""
-    oficio = oficios_service.obtener_oficio_docente_activo(db, current_user.id)
+    oficio = oficios_service.obtener_oficio_docente_activo(db, current_user.id) #type: ignore
     if not oficio:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -104,7 +108,7 @@ def registrar_lectura_mi_oficio(request: Request, current_user: Usuario = Depend
     """Registra la lectura/acuse tácito del oficio (especialmente para eventuales)."""
     ip = request.client.host if request.client else "127.0.0.1"
     try:
-        return oficios_service.registrar_lectura_oficio(db, current_user.id, ip)
+        return oficios_service.registrar_lectura_oficio(db, current_user.id, ip) #type: ignore
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 

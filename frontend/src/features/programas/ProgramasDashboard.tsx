@@ -5,8 +5,11 @@ import { Plus, Search, Pencil, Trash2, Loader2, Upload } from "lucide-react";
 import ProgramaFormSlideOver from './components/ProgramaFormSlideOver';
 import { ConfirmAlert } from "../../components/ui/ConfirmAlert";
 import { ImportModal } from '../../components/ui/ImportModal';
+import { useAuthStore } from '../auth/store/useAuthStore';
 
 export default function ProgramasDashboard() {
+  const { user } = useAuthStore();
+  const isAdmin = user?.rol === 'SUPER_ADMIN';
   const [programas, setProgramas] = useState<ProgramaEducativo[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isDeleteAlertOpen, setDeleteAlertOpen] = useState(false);
@@ -207,6 +210,7 @@ export default function ProgramasDashboard() {
               <th className="py-3 px-4 font-semibold cursor-pointer select-none hover:text-black hover:bg-gray-100" onClick={() => handleSort('nivel')}>
                 Nivel{getSortIcon('nivel')}
               </th>
+              {isAdmin && <th className="py-3 px-4 font-semibold">Unidad Académica</th>}
               <th className="py-3 px-4 font-semibold text-center cursor-pointer select-none hover:text-black hover:bg-gray-100" onClick={() => handleSort('activo')}>
                 Estado{getSortIcon('activo')}
               </th>
@@ -232,6 +236,17 @@ export default function ProgramasDashboard() {
                   <td className="py-3 px-4 font-bold text-gray-700">{prog.clave}</td>
                   <td className="py-3 px-4 font-medium text-[#002d55]">{prog.nombre}</td>
                   <td className="py-3 px-4 font-semibold text-gray-500 text-xs uppercase">{prog.nivel || 'LICENCIATURA'}</td>
+                  {isAdmin && (
+                    <td className="py-3 px-4">
+                      {prog.unidad_academica ? (
+                        <span className="bg-gray-100 text-gray-700 px-2 py-0.5 rounded text-[10px] font-semibold border border-gray-200">
+                          {prog.unidad_academica.clave}
+                        </span>
+                      ) : (
+                        <span className="text-xs text-gray-400 italic">No asignada</span>
+                      )}
+                    </td>
+                  )}
                   <td className="py-3 px-4 text-center">
                     <span className={`px-2 py-1 text-xs font-semibold rounded-sm border ${prog.activo ? 'bg-green-50 text-green-700 border-green-200' : 'bg-gray-50 text-gray-500 border-gray-200'}`}>
                       {prog.activo ? 'Activo' : 'Inactivo'}

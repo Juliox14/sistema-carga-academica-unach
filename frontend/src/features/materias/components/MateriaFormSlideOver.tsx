@@ -18,6 +18,7 @@ interface MateriaFormProps {
 export default function MateriaFormSlideOver({ isOpen, materia, planesOptions, onClose, onSuccess }: MateriaFormProps) {
   const [isSaving, setIsSaving] = useState(false);
   const [areasOptions, setAreasOptions] = useState<{ value: string; label: string }[]>([]);
+  const [esEspecial, setEsEspecial] = useState(false);
   const formRef = useRef<HTMLFormElement>(null);
 
   // Cargar áreas de conocimiento al abrir
@@ -35,8 +36,13 @@ export default function MateriaFormSlideOver({ isOpen, materia, planesOptions, o
     };
     if (isOpen) {
       cargarAreas();
+      if (materia) {
+        setEsEspecial(!!materia.es_especial);
+      } else {
+        setEsEspecial(false);
+      }
     }
-  }, [isOpen]);
+  }, [isOpen, materia]);
 
   // Limpiar el formulario físicamente al cerrarse
   useEffect(() => {
@@ -56,6 +62,7 @@ export default function MateriaFormSlideOver({ isOpen, materia, planesOptions, o
       hsm: Number(formData.get('hsm')),
       plan_estudios_id: Number(formData.get('plan_estudios_id')),
       area_conocimiento_id: Number(formData.get('area_conocimiento_id')),
+      es_especial: esEspecial,
     };
 
     try {
@@ -100,13 +107,30 @@ export default function MateriaFormSlideOver({ isOpen, materia, planesOptions, o
               options={planesOptions} 
             />
             
+            {/* Switch para Materia Especial */}
+            <div className="flex items-center justify-between bg-amber-50 p-4 border border-amber-100 rounded-xl">
+              <div>
+                <h4 className="text-sm font-semibold text-amber-950">Materia Especial (Grupo Único)</h4>
+                <p className="text-xs text-amber-700">Se abrirá un único grupo por periodo para todos los alumnos.</p>
+              </div>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input 
+                  type="checkbox" 
+                  checked={esEspecial} 
+                  onChange={(e) => setEsEspecial(e.target.checked)} 
+                  className="sr-only peer" 
+                />
+                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-amber-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-600"></div>
+              </label>
+            </div>
+
             <div className="flex gap-4">
               <FlatInput 
                 name="nombre_asignatura" 
                 label="Nombre de la Materia" 
                 defaultValue={materia?.nombre_asignatura} 
                 placeholder="Ej. Matemáticas Discretas" 
-                className="uppercase w-2/3" 
+                className="uppercase w-full" 
                 required 
               />
             </div>

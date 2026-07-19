@@ -8,9 +8,14 @@ import { planesEstudioService } from '../../services/planesEstudio.service';
 
 import MateriaFormSlideOver from './components/MateriaFormSlideOver';
 import { materiasService } from '../../services/materias.service';
+import { useAuthStore } from '../auth/store/useAuthStore';
 
 export default function MateriasDashboard({ userRole = 'SECRETARIA_ACADEMICA' }) {
-  if (userRole !== 'SECRETARIA_ACADEMICA') return <AlertCircle className="mx-auto mt-20 text-red-500" size={48} />;
+  const { user } = useAuthStore();
+  const isAdmin = user?.rol === 'SUPER_ADMIN';
+  const isSecretaria = user?.rol === 'SECRETARIA_ACADEMICA';
+
+  if (!isAdmin && !isSecretaria && userRole !== 'SECRETARIA_ACADEMICA') return <AlertCircle className="mx-auto mt-20 text-red-500" size={48} />;
 
   // Estados de datos
   const [materias, setMaterias] = useState<Materia[]>([]);
@@ -236,6 +241,7 @@ export default function MateriasDashboard({ userRole = 'SECRETARIA_ACADEMICA' })
               <th className="py-3 px-4 font-semibold cursor-pointer select-none hover:text-black hover:bg-gray-100" onClick={() => handleSort('plan')}>
                 Plan de Estudios{getSortIcon('plan')}
               </th>
+              {isAdmin && <th className="py-3 px-4 font-semibold">Unidad Académica</th>}
               <th className="py-3 px-4 font-semibold text-right">Acciones</th>
             </tr>
           </thead>
@@ -255,11 +261,30 @@ export default function MateriasDashboard({ userRole = 'SECRETARIA_ACADEMICA' })
                       className="rounded-sm border-gray-300 text-[#002d55] focus:ring-[#002d55] cursor-pointer"
                     />
                   </td>
-                  <td className="py-3 px-4 font-medium text-[#002d55]">{materia.nombre_asignatura}</td>
+                  <td className="py-3 px-4 font-medium text-[#002d55]">
+                    <div className="flex items-center gap-2">
+                      <span>{materia.nombre_asignatura}</span>
+                      {materia.es_especial && (
+                        <span className="text-[9px] bg-amber-100 text-amber-700 px-2 py-0.5 rounded-sm uppercase font-bold tracking-wider">Especial</span>
+                      )}
+                    </div>
+                  </td>
                   <td className="py-3 px-4 text-center text-gray-600">{materia.numero_periodo}º</td>
                   <td className="py-3 px-4 text-center font-semibold text-gray-700">{materia.hsm} hrs</td>
                   <td className="py-3 px-4 text-gray-600">{getNombrePlan(materia.plan_estudios_id)}</td>
                   
+                  {isAdmin && (
+                    <td className="py-3 px-4">
+                      {materia.plan_estudio?.programa_educativo?.unidad_academica ? (
+                        <span className="bg-gray-100 text-gray-700 px-2 py-0.5 rounded text-[10px] font-semibold border border-gray-200">
+                          {materia.plan_estudio.programa_educativo.unidad_academica.clave}
+                        </span>
+                      ) : (
+                        <span className="text-xs text-gray-400 italic">No asignada</span>
+                      )}
+                    </td>
+                  )}
+
                   <td className="py-3 px-4 text-right opacity-0 group-hover:opacity-100 transition-opacity">
                     <button onClick={() => openForm(materia)} className="text-gray-400 hover:text-[#002d55] mx-2 cursor-pointer" title="Editar">
                       <Pencil size={18} />

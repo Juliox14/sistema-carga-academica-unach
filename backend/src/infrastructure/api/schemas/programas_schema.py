@@ -1,5 +1,6 @@
 from pydantic import BaseModel, ConfigDict
 from typing import Optional
+from src.infrastructure.api.schemas.unidades_schema import UnidadAcademicaResponse
 
 class ProgramaEducativoBase(BaseModel):
     nombre: str
@@ -18,6 +19,7 @@ class ProgramaEducativoUpdate(ProgramaEducativoBase):
 
 class ProgramaEducativoResponse(ProgramaEducativoBase):
     id: int
+    unidad_academica: Optional[UnidadAcademicaResponse] = None
 
     model_config = ConfigDict(from_attributes=True)
     

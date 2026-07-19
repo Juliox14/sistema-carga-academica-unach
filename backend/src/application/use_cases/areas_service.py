@@ -78,7 +78,11 @@ async def importar_areas(db: Session, byte_object: BytesIO):
 async def exportar_areas(areas: list):
     wb = xl.Workbook()
     sheet = wb.active
-    sheet.title = "areas_conocimiento"
+    
+    if sheet is None:
+        raise ValueError("No se pudo crear la hoja de cálculo para exportar las áreas de conocimiento.")
+    
+    sheet.title = "areas_conocimiento" 
 
     headers = ["id", "nombre", "descripcion"]
     for col_idx, header in enumerate(headers, start=1):

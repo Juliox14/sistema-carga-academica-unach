@@ -19,6 +19,7 @@ import MateriasDashboard from './features/materias/MateriasDashboard';
 import ProgramasDashboard from './features/programas/ProgramasDashboard';
 import PlanesDashboard from './features/planesEstudio/PlanesDashboard';
 import UsuariosDashboard from './features/usuarios/UsuariosDashboard';
+import UnidadesDashboard from './features/unidades/UnidadesDashboard';
 
 // Import ForceChangePassword
 import ForceChangePassword from './features/auth/ForceChangePassword';
@@ -68,9 +69,23 @@ const router = createBrowserRouter([
             index: true,
             element: <InicioDashboard />,
           },
-          // ─── RUTAS EXCLUSIVAS DE SUPER_ADMIN Y SECRETARIA_ACADEMICA ───
+          // ─── RUTAS COMPARTIDAS SUPER_ADMIN Y SECRETARIA_ACADEMICA ───
           {
             element: <ProtectedRoute allowedRoles={['SUPER_ADMIN', 'SECRETARIA_ACADEMICA']} />,
+            children: [
+              {
+                path: 'configuracion',
+                element: <ConfiguracionDashboard />,
+              },
+              {
+                path: 'docentes',
+                element: <DocentesDashboard userRole="SECRETARIA_ACADEMICA" />,
+              },
+            ],
+          },
+          // ─── RUTAS EXCLUSIVAS DE SECRETARIA_ACADEMICA ───
+          {
+            element: <ProtectedRoute allowedRoles={['SECRETARIA_ACADEMICA']} />,
             children: [
               {
                 path: 'aperturas',
@@ -79,14 +94,6 @@ const router = createBrowserRouter([
               {
                 path: 'asignacion',
                 element: <AssignmentDashboard />,
-              },
-              {
-                path: 'configuracion',
-                element: <ConfiguracionDashboard />,
-              },
-              {
-                path: 'docentes',
-                element: <DocentesDashboard userRole="SECRETARIA_ACADEMICA" />,
               },
               {
                 path: 'oficios/plantillas',
@@ -131,6 +138,10 @@ const router = createBrowserRouter([
               {
                 path: 'usuarios',
                 element: <UsuariosDashboard />,
+              },
+              {
+                path: 'unidades',
+                element: <UnidadesDashboard />,
               },
             ],
           },
