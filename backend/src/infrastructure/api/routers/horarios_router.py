@@ -4,10 +4,12 @@ from typing import List
 
 from src.infrastructure.database.database import get_db
 from src.infrastructure.api.schemas.horarios_schema import (
-    ProgramarHorarioRequest, HorarioClaseResponse, SugerenciasHorarioResponse
+    ProgramarHorarioRequest, HorarioClaseResponse, SugerenciasHorarioResponse,
+    ResumenHorariosGlobalResponse
 )
 from src.application.use_cases import horarios_service
-from src.infrastructure.security import get_current_user
+from src.application.use_cases.generador_horarios import auto_generar_horario
+from src.infrastructure.security import get_current_user, require_roles
 from src.infrastructure.database.orm_models import Usuario, CicloEscolar, AsignacionCarga, HorarioClase
 
 router = APIRouter(prefix="/api/horarios", tags=["Horarios de Clases"])
@@ -45,6 +47,8 @@ def obtener_asignaciones_grupo(grupo_id: int, db: Session = Depends(get_db)):
                 )
             })
         return res
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
@@ -70,10 +74,12 @@ def obtener_horarios(grupo_id: int, db: Session = Depends(get_db)):
                 "hora_fin": h.hora_fin
             })
         return res
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
-@router.post("/programar", response_model=HorarioClaseResponse)
+@router.post("/programar", response_model=HorarioClaseResponse, dependencies=[Depends(require_roles(["SECRETARIA_ACADEMICA"]))])
 def programar_bloque(req: ProgramarHorarioRequest, db: Session = Depends(get_db)):
     try:        
         h = horarios_service.programar_horario(db, req)
@@ -95,16 +101,20 @@ def programar_bloque(req: ProgramarHorarioRequest, db: Session = Depends(get_db)
         }
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@router.delete("/{id}")
+@router.delete("/{id}", dependencies=[Depends(require_roles(["SECRETARIA_ACADEMICA"]))])
 def desprogramar_bloque(id: int, db: Session = Depends(get_db)):
     try:
         horarios_service.desprogramar_horario(db, id)
         return {"mensaje": "Bloque horario desprogramado exitosamente."}
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -114,5 +124,34 @@ def obtener_sugerencias(asignacion_id: int, db: Session = Depends(get_db)):
         return horarios_service.obtener_sugerencias(db, asignacion_id)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=550, detail=str(e))
+
+@router.post("/generar-automatico/{grupo_id}", dependencies=[Depends(require_roles(["SECRETARIA_ACADEMICA"]))])
+def generar_horario_automatico(grupo_id: int, db: Session = Depends(get_db)):
+    """
+    Genera un horario óptimo de manera automática usando Inteligencia Artificial (Z3 SMT).
+    """
+    try:
+        resultado = auto_generar_horario(db, grupo_id)
+        return resultado
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/resumen-programacion", response_model=ResumenHorariosGlobalResponse)
+def obtener_resumen_programacion(db: Session = Depends(get_db), current_user: Usuario = Depends(get_current_user)):
+    try:
+        unidad_id = current_user.unidad_academica_id if current_user.rol and current_user.rol.clave != "SUPER_ADMIN" else None
+        return horarios_service.obtener_resumen_programacion(db, unidad_id)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))

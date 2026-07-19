@@ -15,7 +15,7 @@ export default function LeyendaHorarios() {
         <span>Afinidad Baja (Evitar por docente)</span>
       </div>
       <div className="flex items-center gap-1.5">
-        <span className="w-3.5 h-3.5 rounded-md bg-gray-200 border border-gray-300 inline-block shrink-0 flex items-center justify-center text-[9px] text-gray-500 font-bold font-mono">i</span>
+        <span className="w-3.5 h-3.5 rounded-md bg-gray-200 border border-gray-300 shrink-0 flex items-center justify-center text-[9px] text-gray-500 font-bold font-mono">i</span>
         <span>Inhabilitado / Conflicto</span>
       </div>
     </div>

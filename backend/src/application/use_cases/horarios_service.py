@@ -2,7 +2,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import and_
 from src.infrastructure.database.orm_models import (
     CicloEscolar, AsignacionCarga, HorarioClase, PreferenciaDocente, 
-    Docente, DiaSemana, TipoPreferencia, GrupoAbierto
+    Docente, DiaSemana, TipoPreferencia, GrupoAbierto, CicloEscolarUnidad
 )
 from src.infrastructure.api.schemas.horarios_schema import ProgramarHorarioRequest, PreferenciaDocenteItem
 from typing import List
@@ -74,11 +74,20 @@ def programar_horario(db: Session, req: ProgramarHorarioRequest):
 
     docente_id = asignacion.docente_titular_id or asignacion.docente_temporal_id
     if docente_id:
+        # Encontrar todos los ciclos activos a nivel global para cruzar horarios inter-unidades
+        ciclos_activos = db.query(CicloEscolarUnidad.ciclo_escolar_id).filter(CicloEscolarUnidad.activo == True).distinct().all()
+        ciclos_activos_ids = [c[0] for c in ciclos_activos]
+        ciclos_globales = db.query(CicloEscolar.id).filter(CicloEscolar.activo == True).all()
+        ciclos_activos_ids.extend([c[0] for c in ciclos_globales])
+        ciclos_activos_ids = list(set(ciclos_activos_ids))
+        if not ciclos_activos_ids:
+            ciclos_activos_ids = [ciclo.id]
+
         for h in horas_a_programar:
             docente_ocupado = db.query(HorarioClase)\
                 .join(AsignacionCarga)\
                 .filter(
-                    AsignacionCarga.ciclo_escolar_id == ciclo.id,
+                    AsignacionCarga.ciclo_escolar_id.in_(ciclos_activos_ids),
                     HorarioClase.dia_semana == dia_enum,
                     HorarioClase.hora_inicio == h,
                     (AsignacionCarga.docente_titular_id == docente_id) | (AsignacionCarga.docente_temporal_id == docente_id)
@@ -87,9 +96,19 @@ def programar_horario(db: Session, req: ProgramarHorarioRequest):
             if docente_ocupado:
                 docente_obj = db.query(Docente).filter(Docente.id == docente_id).first()
                 docente_nombre = f"{docente_obj.nombre} {docente_obj.apellidos}" if docente_obj else "Docente"
+                
+                # Obtener la unidad del grupo conflictivo
+                from src.infrastructure.database.orm_models import PlanEstudios, ProgramaEducativo
+                grupo_conflictivo = docente_ocupado.asignacion_carga.grupo_asignado
+                unidad_conflictiva = db.query(ProgramaEducativo).join(PlanEstudios).filter(
+                    PlanEstudios.id == grupo_conflictivo.plan_estudios_id
+                ).first()
+                
+                unidad_nombre = unidad_conflictiva.unidad_academica.clave if (unidad_conflictiva and unidad_conflictiva.unidad_academica) else "Otra Unidad"
+
                 raise ValueError(
                     f"El docente {docente_nombre} ya tiene una clase programada el {req.dia_semana} "
-                    f"de {h}:00 a {h + 1}:00 en el grupo '{docente_ocupado.asignacion_carga.grupo_asignado.grupo}'."
+                    f"de {h}:00 a {h + 1}:00 en el grupo '{grupo_conflictivo.grupo}' de la unidad '{unidad_nombre}'."
                 )
 
     ultimo_horario = None
@@ -154,7 +173,7 @@ def obtener_sugerencias(db: Session, asignacion_id: int):
     slots_grupo = {(h.dia_semana.name, h.hora_inicio) for h in horarios_grupo}
 
     # Obtener horarios del docente para conflictos
-    slots_docente = set()
+    slots_docente = {}
     if docente_id:
         horarios_docente = db.query(HorarioClase)\
             .join(AsignacionCarga)\
@@ -162,7 +181,13 @@ def obtener_sugerencias(db: Session, asignacion_id: int):
                 AsignacionCarga.ciclo_escolar_id == ciclo.id,
                 (AsignacionCarga.docente_titular_id == docente_id) | (AsignacionCarga.docente_temporal_id == docente_id)
             ).all()
-        slots_docente = {(h.dia_semana.name, h.hora_inicio) for h in horarios_docente}
+        # Mapear cada horario ocupado por el docente a la unidad a la que pertenece ese grupo
+        from src.infrastructure.database.orm_models import PlanEstudios, ProgramaEducativo
+        for h in horarios_docente:
+            g = h.asignacion_carga.grupo_asignado
+            u = db.query(ProgramaEducativo).join(PlanEstudios).filter(PlanEstudios.id == g.plan_estudios_id).first()
+            u_clave = u.unidad_academica.clave if (u and u.unidad_academica) else "otra unidad"
+            slots_docente[(h.dia_semana.name, h.hora_inicio)] = u_clave
 
     sugerencias = []
     dias = ["LUNES", "MARTES", "MIERCOLES", "JUEVES", "VIERNES", "SABADO"]
@@ -205,12 +230,13 @@ def obtener_sugerencias(db: Session, asignacion_id: int):
               continue
 
           if (dia, hora) in slots_docente:
+              u_clave = slots_docente[(dia, hora)]
               sugerencias.append({
                   "dia_semana": dia,
                   "hora_inicio": hora,
                   "hora_fin": hora + 1,
                   "afinidad": "CONFLICTO",
-                  "razon": "El docente ya imparte clases a esta hora en otro grupo."
+                  "razon": f"El docente ya imparte clases a esta hora ({u_clave})."
               })
               continue
 
@@ -289,3 +315,78 @@ def guardar_preferencias_docente(db: Session, docente_id: int, ciclo_id: int, it
 
     db.commit()
     return obtener_preferencias_docente(db, docente_id, ciclo_id)
+
+def obtener_resumen_programacion(db: Session, unidad_id: int | None = None):
+    from src.infrastructure.database.orm_models import PlanEstudios, ProgramaEducativo
+    ciclo = obtener_ciclo_activo(db, unidad_id)
+    if not ciclo:
+        raise ValueError("No hay un ciclo activo.")
+
+    grupos_query = db.query(GrupoAbierto).join(PlanEstudios).join(ProgramaEducativo)
+    grupos_query = grupos_query.filter(GrupoAbierto.ciclo_escolar_id == ciclo.id)
+    if unidad_id:
+        grupos_query = grupos_query.filter(ProgramaEducativo.unidad_academica_id == unidad_id)
+    
+    grupos_abiertos = grupos_query.all()
+    
+    resumen_grupos = []
+    
+    total_grupos = len(grupos_abiertos)
+    grupos_completos = 0
+    grupos_incompletos = 0
+    grupos_vacios = 0
+    total_hsm_global = 0
+    total_programadas_global = 0
+
+    for g in grupos_abiertos:
+        asignaciones = db.query(AsignacionCarga).filter(
+            AsignacionCarga.grupo_asignado_id == g.id,
+            AsignacionCarga.ciclo_escolar_id == ciclo.id
+        ).all()
+        
+        hsm_totales = sum(a.materia.hsm for a in asignaciones if a.materia)
+        
+        horas_programadas = 0
+        for a in asignaciones:
+            for horario in a.horarios:
+                horas_programadas += (horario.hora_fin - horario.hora_inicio)
+                
+        horas_pendientes = hsm_totales - horas_programadas
+        if horas_pendientes < 0:
+            horas_pendientes = 0
+            
+        estado = "VACIO"
+        if horas_programadas == 0:
+            estado = "VACIO"
+            grupos_vacios += 1
+        elif horas_programadas >= hsm_totales:
+            estado = "COMPLETO"
+            grupos_completos += 1
+        else:
+            estado = "INCOMPLETO"
+            grupos_incompletos += 1
+            
+        total_hsm_global += hsm_totales
+        total_programadas_global += horas_programadas
+            
+        resumen_grupos.append({
+            "grupo_id": g.id,
+            "grupo_nombre": f"{g.numero_periodo} {g.grupo}",
+            "plan_id": g.plan_estudios_id,
+            "plan_nombre": g.plan_estudio.nombre if g.plan_estudio else "Desconocido",
+            "turno": g.turno.name if hasattr(g.turno, 'name') else str(g.turno),
+            "hsm_totales": hsm_totales,
+            "horas_programadas": horas_programadas,
+            "horas_pendientes": horas_pendientes,
+            "estado": estado
+        })
+        
+    return {
+        "total_grupos": total_grupos,
+        "grupos_completos": grupos_completos,
+        "grupos_incompletos": grupos_incompletos,
+        "grupos_vacios": grupos_vacios,
+        "total_hsm": total_hsm_global,
+        "total_programadas": total_programadas_global,
+        "grupos": resumen_grupos
+    }

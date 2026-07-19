@@ -52,7 +52,7 @@ export default function HorarioHeader({
             onChange={(e) => {
               onSelectPlan(e.target.value === '' ? '' : Number(e.target.value));
             }}
-            className="border border-gray-300 bg-white rounded-xl py-2 pl-4 pr-10 focus:outline-none focus:border-[#002d55] text-xs font-semibold text-gray-700 cursor-pointer min-w-[200px] shadow-xs"
+            className="border border-gray-300 bg-white rounded-xl py-2 pl-4 pr-10 focus:outline-none focus:border-[#002d55] text-xs font-semibold text-gray-700 cursor-pointer min-w-45 shadow-xs"
           >
             <option value="">Seleccione Plan...</option>
             {planes.map(p => (
@@ -69,7 +69,7 @@ export default function HorarioHeader({
             onChange={(e) => {
               onSelectGrupo(e.target.value === '' ? '' : Number(e.target.value));
             }}
-            className="border border-gray-300 bg-white rounded-xl py-2 pl-4 pr-10 focus:outline-none focus:border-[#002d55] text-xs font-semibold text-gray-700 cursor-pointer min-w-[180px] shadow-xs disabled:opacity-50"
+            className="border border-gray-300 bg-white rounded-xl py-2 pl-4 pr-10 focus:outline-none focus:border-[#002d55] text-xs font-semibold text-gray-700 cursor-pointer min-w-45 shadow-xs disabled:opacity-50"
           >
             <option value="">Seleccione Grupo...</option>
             {gruposFiltrados.map(g => (

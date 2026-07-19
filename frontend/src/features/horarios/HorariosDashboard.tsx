@@ -7,7 +7,7 @@ import type { HorarioClase, SugerenciaSlot, GrupoAsignacion } from '../../servic
 import type { PlanEstudios } from '../../types/planesEstudio';
 import type { CicloEscolar } from '../../types/ciclos';
 import toast from 'react-hot-toast';
-import { BookOpen, Sparkles, Loader2 } from 'lucide-react';
+import { BookOpen, Sparkles, Loader2, Wand2 } from 'lucide-react';
 
 // Import Subcomponents
 import HorarioHeader from './components/HorarioHeader';
@@ -15,6 +15,7 @@ import AsignacionesSidebar from './components/AsignacionesSidebar';
 import LeyendaHorarios from './components/LeyendaHorarios';
 import BloqueDurationModal from './components/BloqueDurationModal';
 import HorarioGridTable from './components/HorarioGridTable';
+import ScheduleSummary from './components/ScheduleSummary';
 
 // Import UI confirm components
 import { ConfirmAlert } from '../../components/ui/ConfirmAlert';
@@ -49,6 +50,7 @@ export default function HorariosDashboard() {
   
   const [loading, setLoading] = useState(false);
   const [loadingSugerencias, setLoadingSugerencias] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
 
   // States for Modals
   const [durationModalOpen, setDurationModalOpen] = useState(false);
@@ -222,11 +224,39 @@ export default function HorariosDashboard() {
     }
   };
 
+  const handleGenerarAutomatico = async () => {
+    if (!selectedGrupoId) return;
+    setIsGenerating(true);
+    try {
+      const response = await horariosService.generarHorarioAutomatico(Number(selectedGrupoId));
+      toast.success(`${response.mensaje} (${response.slots_creados} horas programadas)`);
+      await cargarHorariosYAsignaciones(Number(selectedGrupoId));
+    } catch (err: any) {
+      console.error(err);
+      toast.error(err.response?.data?.detail || 'Error al generar el horario automático.');
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
   // Encontrar el grupo seleccionado
   const grupoSeleccionadoObj = grupos.find(g => g.id === Number(selectedGrupoId));
 
+  const handleSelectGrupoFromSummary = (grupoId: number) => {
+    const grupo = grupos.find(g => g.id === grupoId);
+    if (grupo) {
+      setSelectedPlanId(grupo.plan_estudios_id);
+      setSelectedGrupoId(grupo.id);
+    }
+  };
+
   return (
     <div className="p-8 max-w-7xl mx-auto h-full flex flex-col relative space-y-6">
+      <ScheduleSummary 
+        cicloActivoId={cicloActivo?.id} 
+        selectedPlanId={selectedPlanId}
+        onSelectGrupo={handleSelectGrupoFromSummary} 
+      />
       
       {/* Header Selector */}
       <HorarioHeader
@@ -265,6 +295,18 @@ export default function HorariosDashboard() {
 
           {/* Grilla Semanal Horaria */}
           <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-xs lg:col-span-3 flex flex-col relative min-h-125">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-sm font-bold text-gray-700">Horario de Clases</h3>
+              <button
+                onClick={handleGenerarAutomatico}
+                disabled={isGenerating}
+                className="flex items-center gap-2 px-3 py-1.5 bg-linear-to-r from-purple-500 to-indigo-600 text-white text-xs font-bold rounded-lg shadow-sm hover:from-purple-600 hover:to-indigo-700 disabled:opacity-50 transition-all cursor-pointer"
+              >
+                {isGenerating ? <Loader2 size={14} className="animate-spin" /> : <Wand2 size={14} />}
+                {isGenerating ? 'Generando...' : 'Generar Automático'}
+              </button>
+            </div>
+
             {selectedAsignacionId && (
               <div className="mb-4 bg-teal-50 border border-teal-100 text-teal-900 rounded-2xl p-3.5 flex justify-between items-center">
                 <div className="flex items-center gap-2">

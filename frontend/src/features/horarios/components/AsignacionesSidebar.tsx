@@ -62,7 +62,7 @@ export default function AsignacionesSidebar({
       ) : asignaciones.length === 0 ? (
         <p className="text-xs text-gray-400 py-6 text-center">No hay asignaturas asociadas a este grupo.</p>
       ) : (
-        <div className="space-y-2.5 max-h-[500px] overflow-y-auto pr-1">
+        <div className="space-y-2.5 max-h-125 overflow-y-auto pr-1">
           {asignaciones.map(asig => {
             const completado = asig.horas_programadas >= asig.materia_hsm;
             const esSeleccionado = selectedAsignacionId === asig.id;

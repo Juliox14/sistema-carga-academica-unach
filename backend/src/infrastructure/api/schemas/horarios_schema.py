@@ -45,3 +45,23 @@ class SugerenciaSlot(BaseModel):
 
 class SugerenciasHorarioResponse(BaseModel):
     sugerencias: List[SugerenciaSlot]
+
+class ResumenHorariosGrupoResponse(BaseModel):
+    grupo_id: int
+    grupo_nombre: str
+    plan_id: int
+    plan_nombre: str
+    turno: str
+    hsm_totales: int
+    horas_programadas: int
+    horas_pendientes: int
+    estado: str # "COMPLETO", "INCOMPLETO", "VACIO"
+
+class ResumenHorariosGlobalResponse(BaseModel):
+    total_grupos: int
+    grupos_completos: int
+    grupos_incompletos: int
+    grupos_vacios: int
+    total_hsm: int
+    total_programadas: int
+    grupos: List[ResumenHorariosGrupoResponse]

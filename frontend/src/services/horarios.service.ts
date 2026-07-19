@@ -55,5 +55,37 @@ export const horariosService = {
   obtenerSugerencias: async (asignacionId: number): Promise<SugerenciaSlot[]> => {
     const response = await api.get<{ sugerencias: SugerenciaSlot[] }>(`/horarios/sugerencias/${asignacionId}`);
     return response.data.sugerencias;
+  },
+
+  generarHorarioAutomatico: async (grupoId: number): Promise<{ mensaje: string; slots_creados: number }> => {
+    const response = await api.post<{ mensaje: string; slots_creados: number }>(`/horarios/generar-automatico/${grupoId}`);
+    return response.data;
+  },
+
+  obtenerResumenProgramacion: async (): Promise<ResumenHorariosGlobalResponse> => {
+    const response = await api.get<ResumenHorariosGlobalResponse>('/horarios/resumen-programacion');
+    return response.data;
   }
 };
+
+export interface ResumenHorariosGrupo {
+  grupo_id: number;
+  grupo_nombre: string;
+  plan_id: number;
+  plan_nombre: string;
+  turno: string;
+  hsm_totales: number;
+  horas_programadas: number;
+  horas_pendientes: number;
+  estado: 'COMPLETO' | 'INCOMPLETO' | 'VACIO';
+}
+
+export interface ResumenHorariosGlobalResponse {
+  total_grupos: number;
+  grupos_completos: number;
+  grupos_incompletos: number;
+  grupos_vacios: number;
+  total_hsm: number;
+  total_programadas: number;
+  grupos: ResumenHorariosGrupo[];
+}
