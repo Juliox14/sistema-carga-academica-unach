@@ -1,5 +1,5 @@
 from sqlalchemy.orm import Session
-from sqlalchemy import and_
+from sqlalchemy import and_, or_, func
 from typing import Optional
 
 from src.infrastructure.database.orm_models import Docente, Materia, GrupoAbierto, AsignacionCarga, EstatusMateria, EstadoAsignacion, Turno
@@ -14,7 +14,8 @@ def obtener_materias_disponibles(db: Session, plan_id: int, docente_id: Optional
     """
     ciclo = obtener_ciclo_activo(db)
     
-    es_eventual = False
+    permite_titular = True
+    permite_suplente = False
     turno = None
     
     if docente_id:
@@ -22,13 +23,14 @@ def obtener_materias_disponibles(db: Session, plan_id: int, docente_id: Optional
         if docente:
             turno = docente.turno
             if docente.categoria:
-                es_eventual = "EVENTUAL" in docente.categoria.nombre.upper()
+                permite_titular = getattr(docente.categoria, 'permite_titular', True)
+                permite_suplente = getattr(docente.categoria, 'permite_suplente', False)
     
     disponibles = []
 
-    if es_eventual:
+    if permite_suplente:
         # ==========================================
-        # DOCENTES EVENTUALES (Búsqueda de suplencias)
+        # BÚSQUEDA DE SUPLENCIAS (descargas disponibles)
         # ==========================================
         query = db.query(AsignacionCarga).join(Materia).join(
             GrupoAbierto, AsignacionCarga.grupo_asignado_id == GrupoAbierto.id
@@ -57,9 +59,9 @@ def obtener_materias_disponibles(db: Session, plan_id: int, docente_id: Optional
                 "titular_original": f"{a.docente_titular.apellidos} {a.docente_titular.nombre}" if a.docente_titular else "Desconocido"
             })
             
-    else:
+    if permite_titular:
         # ==========================================
-        # DOCENTES REGULARES (Búsqueda de carga libre)
+        # BÚSQUEDA DE CARGA LIBRE (clases regulares)
         # ==========================================
         # 1. Subconsulta súper rápida para saber qué materias YA están asignadas
         asignadas_subq = db.query(AsignacionCarga.materia_id, AsignacionCarga.grupo_asignado_id).filter(
@@ -67,13 +69,17 @@ def obtener_materias_disponibles(db: Session, plan_id: int, docente_id: Optional
             AsignacionCarga.docente_titular_id.isnot(None)
         ).subquery()
 
-        # 2. Hacemos el emparejamiento (Materia x Grupo) directo en SQL
         query = db.query(Materia, GrupoAbierto).join(
             GrupoAbierto,
             and_(
                 Materia.numero_periodo == GrupoAbierto.numero_periodo,
                 GrupoAbierto.ciclo_escolar_id == ciclo.id,
                 GrupoAbierto.plan_estudios_id == plan_id
+            )
+        ).filter(
+            or_(
+                and_(Materia.es_especial == True, GrupoAbierto.es_especial == True),
+                and_(Materia.es_especial == False, GrupoAbierto.es_especial == False)
             )
         ).outerjoin(
             # Excluimos las que aparezcan en la subconsulta

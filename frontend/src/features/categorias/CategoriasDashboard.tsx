@@ -224,9 +224,10 @@ export default function CategoriasDashboard({ userRole = 'SECRETARIA_ACADEMICA' 
                     />
                   </td>
                   <td className="py-3 px-4 font-bold text-gray-700">{cat.siglas}</td>
-                  <td className="py-3 px-4 font-medium text-[#002d55] flex items-center gap-2">
-                    {cat.nombre}
-                    {cat.es_comodin && <span className="text-[10px] bg-purple-100 text-purple-700 px-2 py-0.5 rounded-sm uppercase font-bold tracking-wider">Comodín</span>}
+                  <td className="py-3 px-4 font-medium text-[#002d55]">
+                    <div className="flex items-center gap-2">
+                      <span>{cat.nombre}</span>
+                    </div>
                   </td>
                   <td className="py-3 px-4 text-center text-gray-600 font-semibold">{cat.hsm_base} hrs</td>
                   <td className="py-3 px-4 text-center">

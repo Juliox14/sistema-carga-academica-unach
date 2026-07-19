@@ -1,6 +1,7 @@
 from pydantic import BaseModel, ConfigDict
 from typing import Optional
 from src.infrastructure.database.orm_models import TipoPeriodo
+from src.infrastructure.api.schemas.programas_schema import ProgramaEducativoResponse
 
 class PlanEstudiosBase(BaseModel):
     nombre: str
@@ -19,5 +20,6 @@ class PlanEstudiosUpdate(PlanEstudiosBase):
 
 class PlanEstudiosResponse(PlanEstudiosBase):
     id: int
+    programa_educativo: Optional[ProgramaEducativoResponse] = None
 
     model_config = ConfigDict(from_attributes=True)

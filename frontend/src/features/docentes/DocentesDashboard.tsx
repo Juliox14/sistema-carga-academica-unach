@@ -13,8 +13,14 @@ import { areasService } from '../../services/areas.service';
 
 import DocenteFormSlideOver from './components/DocentesFormSlideOver';
 
+import { useAuthStore } from '../auth/store/useAuthStore';
+
 export default function DocentesDashboard({ userRole = 'SECRETARIA_ACADEMICA' }) {
-  if (userRole !== 'SECRETARIA_ACADEMICA') return <AlertCircle className="mx-auto mt-20 text-red-500" size={48} />;
+  const { user } = useAuthStore();
+  const isAdmin = user?.rol === 'SUPER_ADMIN';
+  const isSecretaria = user?.rol === 'SECRETARIA_ACADEMICA';
+
+  if (!isAdmin && !isSecretaria && userRole !== 'SECRETARIA_ACADEMICA') return <AlertCircle className="mx-auto mt-20 text-red-500" size={48} />;
 
   const [docentes, setDocentes] = useState<Docente[]>([]);
   const [categorias, setCategorias] = useState<CategoriaDocente[]>([]);
@@ -65,8 +71,8 @@ export default function DocentesDashboard({ userRole = 'SECRETARIA_ACADEMICA' })
   // Lógica de Búsqueda y Selección
   const filteredDocentes = docentes.filter(doc => 
     doc.nombre.toLowerCase().includes(searchQuery.toLowerCase()) || 
-    doc.apellidos.toLowerCase().includes(searchQuery.toLowerCase()) || 
-    doc.plaza.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (doc.apellidos?.toLowerCase() || '').includes(searchQuery.toLowerCase()) || 
+    (doc.plaza?.toLowerCase() || '').includes(searchQuery.toLowerCase()) ||
     getNombreCategoria(doc.categoria_id).toLowerCase().includes(searchQuery.toLowerCase())
   );
 
@@ -248,6 +254,7 @@ export default function DocentesDashboard({ userRole = 'SECRETARIA_ACADEMICA' })
               <th className="py-3 px-4 font-semibold cursor-pointer select-none hover:text-black hover:bg-gray-100" onClick={() => handleSort('categoria')}>
                 Categoría{getSortIcon('categoria')}
               </th>
+              {isAdmin && <th className="py-3 px-4 font-semibold">Unidad Académica</th>}
               <th className="py-3 px-4 font-semibold">Áreas</th>
               <th className="py-3 px-4 font-semibold text-center cursor-pointer select-none hover:text-black hover:bg-gray-100" onClick={() => handleSort('estatus')}>
                 Estatus{getSortIcon('estatus')}
@@ -271,12 +278,35 @@ export default function DocentesDashboard({ userRole = 'SECRETARIA_ACADEMICA' })
                       className="rounded-sm border-gray-300 text-[#002d55] focus:ring-[#002d55] cursor-pointer"
                     />
                   </td>
-                  <td className="py-3 px-4 font-bold text-gray-700">{doc.plaza}</td>
-                  <td className="py-3 px-4 font-medium text-[#002d55]">{doc.apellidos} {doc.nombre}</td>
+                  <td className="py-3 px-4 font-bold text-gray-700">{doc.plaza || '—'}</td>
+                  <td className="py-3 px-4 font-medium text-[#002d55]">
+                    <div className="flex items-center gap-2">
+                      <span>{doc.es_comodin ? doc.nombre : `${doc.apellidos || ''} ${doc.nombre}`}</span>
+                      {doc.es_comodin && (
+                        <span className="text-[9px] bg-purple-100 text-purple-700 px-2 py-0.5 rounded-sm uppercase font-bold tracking-wider">Comodín</span>
+                      )}
+                    </div>
+                  </td>
                   <td className="py-3 px-4 text-gray-600 font-mono text-xs">{doc.correo_institucional || '—'}</td>
                   <td className="py-3 px-4 text-gray-600">{doc.telefono || '—'}</td>
                   <td className="py-3 px-4 text-gray-600">{getNombreCategoria(doc.categoria_id)}</td>
                   
+                  {isAdmin && (
+                    <td className="py-3 px-4">
+                      <div className="flex flex-wrap gap-1">
+                        {doc.unidades && doc.unidades.length > 0 ? (
+                          doc.unidades.map(u => (
+                            <span key={u.unidad_academica.id} className="bg-gray-100 text-gray-700 px-2 py-0.5 rounded text-[10px] font-semibold border border-gray-200">
+                              {u.unidad_academica.clave}
+                            </span>
+                          ))
+                        ) : (
+                          <span className="text-xs text-gray-400 italic">Global</span>
+                        )}
+                      </div>
+                    </td>
+                  )}
+
                   <td className="py-3 px-4">
                     <div className="flex flex-wrap gap-1">
                       {doc.areas_conocimiento && doc.areas_conocimiento.length > 0 ? (

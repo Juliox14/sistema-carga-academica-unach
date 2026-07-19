@@ -3,6 +3,12 @@ from typing import List, Optional
 from datetime import date
 from src.infrastructure.database.orm_models import Turno
 from src.infrastructure.api.schemas.estatus_schema import EstatusDocenteResponse
+from src.infrastructure.api.schemas.unidades_schema import UnidadAcademicaResponse
+
+class DocenteUnidadResponse(BaseModel):
+    unidad_academica: UnidadAcademicaResponse
+    es_unidad_principal: bool
+    model_config = ConfigDict(from_attributes=True)
 
 class AreaConocimientoResponse(BaseModel):
     id: int
@@ -11,8 +17,8 @@ class AreaConocimientoResponse(BaseModel):
 
 class DocenteBase(BaseModel):
     nombre: str
-    apellidos: str
-    plaza: str
+    apellidos: Optional[str] = None
+    plaza: Optional[str] = None
     categoria_id: int
     hsm_personalizadas: Optional[float] = None
     estatus_id: int
@@ -20,6 +26,7 @@ class DocenteBase(BaseModel):
     telefono: Optional[str] = None
     usuario_id: Optional[int] = None
     turno: Turno = Turno.MIXTO
+    es_comodin: bool = False
     # Campos PAD
     rfc: Optional[str] = None
     curp: Optional[str] = None
@@ -29,6 +36,8 @@ class DocenteBase(BaseModel):
 
 class DocenteCreate(DocenteBase):
     areas_conocimiento_ids: List[int] = []
+    horas_obligatorias: Optional[float] = None
+    es_unidad_principal: bool = True
     
 class DocenteUpdate(BaseModel):
     nombre: Optional[str] = None
@@ -41,6 +50,7 @@ class DocenteUpdate(BaseModel):
     telefono: Optional[str] = None
     usuario_id: Optional[int] = None
     turno: Optional[Turno] = None
+    es_comodin: Optional[bool] = None
     # Campos PAD
     rfc: Optional[str] = None
     curp: Optional[str] = None
@@ -49,10 +59,13 @@ class DocenteUpdate(BaseModel):
     ultimo_grado_estudio: Optional[str] = None
     
     areas_conocimiento_ids: Optional[List[int]] = None
+    horas_obligatorias: Optional[float] = None
+    es_unidad_principal: Optional[bool] = None
 
 class DocenteResponse(DocenteBase):
     id: int
     areas_conocimiento: List[AreaConocimientoResponse] = []
     estatus: Optional[EstatusDocenteResponse] = None
+    unidades: List[DocenteUnidadResponse] = []
     
     model_config = ConfigDict(from_attributes=True)

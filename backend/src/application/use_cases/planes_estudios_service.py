@@ -84,7 +84,7 @@ async def importar_plan_estudios(db: Session, byte_object: BytesIO):
                 clave = r_data.get("clave")
                 nombre = r_data.get("nombre")
                 if ex_id is not None:
-                    excel_prog_map[int(ex_id)] = (clave, nombre)
+                    excel_prog_map[int(ex_id)] = (clave, nombre) #type: ignore
 
         for row in sheet.iter_rows(min_row=2, values_only=True):
             row_data = {key: value for key, value in zip(headers, row)}
@@ -96,14 +96,14 @@ async def importar_plan_estudios(db: Session, byte_object: BytesIO):
             if prog_id_raw is not None and str(prog_id_raw).strip() != "":
                 # 1. Intentar mapear usando nuestro mapa de Excel
                 try:
-                    ex_id = int(prog_id_raw)
+                    ex_id = int(prog_id_raw) #type: ignore
                     if ex_id in excel_prog_map:
                         clave, nombre = excel_prog_map[ex_id]
                         if clave:
                             prog = db.query(ProgramaEducativo).filter(ProgramaEducativo.clave == clave).first()
                             if prog:
                                 prog_id = prog.id
-                        if not prog_id and nombre:
+                        if not prog_id and nombre: #type: ignore
                             prog = db.query(ProgramaEducativo).filter(ProgramaEducativo.nombre == nombre).first()
                             if prog:
                                 prog_id = prog.id
@@ -111,9 +111,9 @@ async def importar_plan_estudios(db: Session, byte_object: BytesIO):
                     pass
 
                 # 2. Si no se resolvió, ver si el ID existe directo en BD
-                if not prog_id:
+                if not prog_id: #type: ignore
                     try:
-                        p_id = int(prog_id_raw)
+                        p_id = int(prog_id_raw) #type: ignore
                         exists = db.query(ProgramaEducativo).filter(ProgramaEducativo.id == p_id).first()
                         if exists:
                             prog_id = exists.id
@@ -121,14 +121,14 @@ async def importar_plan_estudios(db: Session, byte_object: BytesIO):
                         pass
             
             # 3. Si sigue sin resolverse, buscar por claves/nombres en otros campos del Excel
-            if not prog_id:
+            if not prog_id: #type: ignore
                 prog_clave = str(row_data.get("programa_educativo_clave") or row_data.get("programa_clave") or "").strip()
                 if prog_clave:
                     prog = db.query(ProgramaEducativo).filter(ProgramaEducativo.clave == prog_clave).first()
                     if prog:
                         prog_id = prog.id
                 
-                if not prog_id:
+                if not prog_id: #type: ignore
                     prog_name = str(row_data.get("programa_educativo") or row_data.get("programa") or "").strip()
                     if prog_name:
                         prog = db.query(ProgramaEducativo).filter(ProgramaEducativo.nombre == prog_name).first()
@@ -136,22 +136,22 @@ async def importar_plan_estudios(db: Session, byte_object: BytesIO):
                             prog_id = prog.id
 
             # 4. Si aún no se resolvió, intentar deducir a partir del nombre del plan (si contiene la clave del programa)
-            if not prog_id:
+            if not prog_id: #type: ignore
                 plan_name = str(row_data.get("nombre") or "").strip()
                 all_progs = db.query(ProgramaEducativo).all()
                 for p in all_progs:
-                    if p.clave and p.clave in plan_name:
+                    if p.clave and p.clave in plan_name: #type: ignore
                         prog_id = p.id
                         break
 
-            if not prog_id:
+            if not prog_id: #type: ignore
                 raise ValueError(f"No se pudo resolver el Programa Educativo para la fila con nombre: '{row_data.get('nombre')}'")
 
             plan_data = PlanEstudiosCreate(
                 nombre=str(row_data.get("nombre") or "").strip(),
-                programa_educativo_id=prog_id,
-                vigente=row_data.get("vigente") if row_data.get("vigente") is not None else True,
-                tipo_periodo=row_data.get("tipo_periodo")
+                programa_educativo_id=prog_id, #type: ignore
+                vigente=row_data.get("vigente") if row_data.get("vigente") is not None else True, #type: ignore
+                tipo_periodo=row_data.get("tipo_periodo") #type: ignore
             )
             nuevo_plan = crear_nuevo_plan_estudios(db, plan_data)
             objects.append(nuevo_plan)
@@ -164,18 +164,18 @@ async def exportar_plan_estudios(db: Session):
     planes = db.query(PlanEstudios).all()
     wb = xl.Workbook()
     sheet = wb.active
-    sheet.title = "planes_estudio"
+    sheet.title = "planes_estudio" #type: ignore
 
     headers = ["id", "nombre", "programa_educativo_id", "vigente", "tipo_periodo"]
     for col_idx, header in enumerate(headers, start=1):
-        sheet.cell(row=1, column=col_idx, value=header)
+        sheet.cell(row=1, column=col_idx, value=header) #type: ignore
 
     for row_idx, plan in enumerate(planes, start=2):
-        sheet.cell(row=row_idx, column=1, value=plan.id)
-        sheet.cell(row=row_idx, column=2, value=plan.nombre)
-        sheet.cell(row=row_idx, column=3, value=plan.programa_educativo_id)
-        sheet.cell(row=row_idx, column=4, value=plan.vigente)
-        sheet.cell(row=row_idx, column=5, value=plan.tipo_periodo.value)
+        sheet.cell(row=row_idx, column=1, value=plan.id) #type: ignore
+        sheet.cell(row=row_idx, column=2, value=plan.nombre) #type: ignore
+        sheet.cell(row=row_idx, column=3, value=plan.programa_educativo_id) #type: ignore
+        sheet.cell(row=row_idx, column=4, value=plan.vigente) #type: ignore
+        sheet.cell(row=row_idx, column=5, value=plan.tipo_periodo.value) #type: ignore
 
     buffer = BytesIO()
     wb.save(buffer)

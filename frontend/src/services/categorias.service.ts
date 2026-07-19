@@ -17,5 +17,9 @@ export const categoriasService = {
   eliminar: async (id: number) => {
     const response = await api.delete(`/categorias/${id}`);
     return response.data;
+  },
+  actualizarReglasBulk: async (reglas: { id: number; permite_titular: boolean; permite_suplente: boolean }[]) => {
+    const response = await api.put('/categorias/bulk-rules', reglas);
+    return response.data;
   }
 };

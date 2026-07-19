@@ -1,6 +1,6 @@
 from sqlalchemy.orm import Session
 from src.infrastructure.database.orm_models import CategoriaDocente
-from src.infrastructure.api.schemas.categorias_schema import CategoriaDocenteCreate, CategoriaDocenteUpdate
+from src.infrastructure.api.schemas.categorias_schema import CategoriaDocenteCreate, CategoriaDocenteUpdate, CategoriaBulkRulesUpdate
 
 def crear_categoria(db: Session, categoria_data: CategoriaDocenteCreate):
     datos = categoria_data.model_dump()
@@ -46,3 +46,12 @@ def actualizar_categoria(db: Session, categoria_id: int, categoria_data: Categor
     db.commit()
     db.refresh(categoria)
     return categoria
+
+def actualizar_reglas_bulk(db: Session, datos: list[CategoriaBulkRulesUpdate]):
+    for item in datos:
+        cat = db.query(CategoriaDocente).filter(CategoriaDocente.id == item.id).first()
+        if cat:
+            cat.permite_titular = item.permite_titular
+            cat.permite_suplente = item.permite_suplente
+    db.commit()
+    return {"mensaje": "Reglas de categorías actualizadas con éxito."}

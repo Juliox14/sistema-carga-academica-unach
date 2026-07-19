@@ -19,7 +19,6 @@ def obtener_mapa_historial_docente(db: Session, docente_id: int) -> dict:
     """
     ciclo_activo_id = obtener_ciclo_activo(db).id
     # 1. Obtenemos TODOS los ciclos de la UNACH ordenados del más nuevo al más viejo
-    # Esto es vital para saber el orden cronológico real sin depender de IDs secuenciales
     ciclos_ordenados = db.query(CicloEscolar.id).order_by(
         CicloEscolar.anio.desc(), 
         CicloEscolar.mes_inicio.desc()

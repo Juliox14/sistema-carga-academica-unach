@@ -11,8 +11,11 @@ import { ConfirmAlert } from '../../components/ui/ConfirmAlert';
 import { ImportModal } from '../../components/ui/ImportModal';
 
 import PlanFormSlideOver from './components/PlanesFormSlideOver';
+import { useAuthStore } from '../auth/store/useAuthStore';
 
 export default function PlanesDashboard() {
+  const { user } = useAuthStore();
+  const isAdmin = user?.rol === 'SUPER_ADMIN';
   const [planes, setPlanes] = useState<PlanEstudios[]>([]);
   const [programas, setProgramas] = useState<ProgramaEducativo[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -228,6 +231,7 @@ export default function PlanesDashboard() {
               <th className="py-3 px-4 font-semibold cursor-pointer select-none hover:text-black hover:bg-gray-100" onClick={() => handleSort('programa')}>
                 Programa Padre{getSortIcon('programa')}
               </th>
+              {isAdmin && <th className="py-3 px-4 font-semibold">Unidad Académica</th>}
               <th className="py-3 px-4 font-semibold text-center cursor-pointer select-none hover:text-black hover:bg-gray-100" onClick={() => handleSort('vigente')}>
                 Estatus{getSortIcon('vigente')}
               </th>
@@ -251,7 +255,22 @@ export default function PlanesDashboard() {
                     />
                   </td>
                   <td className="py-3 px-4 font-bold text-[#002d55]">{plan.nombre}</td>
-                  <td className="py-3 px-4 font-medium text-gray-600">{getNombrePrograma(plan.programa_educativo_id)}</td>
+                  <td className="py-3 px-4 font-medium text-gray-600">
+                    <div className="flex items-center gap-2">
+                      <span className="font-semibold text-gray-500">{getNombrePrograma(plan.programa_educativo_id)}</span>
+                    </div>
+                  </td>
+                  {isAdmin && (
+                    <td className="py-3 px-4">
+                      {plan.programa_educativo?.unidad_academica ? (
+                        <span className="bg-gray-100 text-gray-700 px-2 py-0.5 rounded text-[10px] font-semibold border border-gray-200">
+                          {plan.programa_educativo.unidad_academica.clave}
+                        </span>
+                      ) : (
+                        <span className="text-xs text-gray-400 italic">No asignada</span>
+                      )}
+                    </td>
+                  )}
                   <td className="py-3 px-4 text-center">
                     <span className={`px-2 py-1 text-xs font-semibold rounded-sm border ${plan.vigente ? 'bg-green-50 text-green-700 border-green-200' : 'bg-orange-50 text-orange-700 border-orange-200'}`}>
                       {plan.vigente ? 'Vigente' : 'En Liquidación'}

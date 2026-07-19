@@ -5,18 +5,19 @@ from src.infrastructure.api.schemas.asignaciones_schema import AsignarActividadR
 from src.application.use_cases.ciclos_service import obtener_ciclo_activo
 from .validaciones import _verificar_limite_hsm  # Importamos la validación
 
-def asignar_otra_actividad(db: Session, datos: AsignarActividadRequest):
+def asignar_otra_actividad(db: Session, datos: AsignarActividadRequest, unidad_academica_id: int | None = None):
     ciclo = obtener_ciclo_activo(db)
     
     # Validar límite estricto de horas antes de proceder
-    _verificar_limite_hsm(db, datos.docente_id, datos.horas_asignadas)
+    _verificar_limite_hsm(db, datos.docente_id, datos.horas_asignadas, unidad_academica_id)
     
     nueva_actividad = AsignacionOtraActividad(
         docente_id=datos.docente_id,
         actividad_id=datos.actividad_id,
         horas_asignadas=datos.horas_asignadas,
         observaciones=datos.observaciones,
-        ciclo_escolar_id=ciclo.id
+        ciclo_escolar_id=ciclo.id,
+        unidad_academica_id=unidad_academica_id
     )
     
     db.add(nueva_actividad)

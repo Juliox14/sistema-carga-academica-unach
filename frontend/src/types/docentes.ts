@@ -4,8 +4,8 @@ import type { EstatusDocente } from './estatus';
 export interface Docente {
   id?: number;
   nombre: string;
-  apellidos: string;
-  plaza: string;
+  apellidos?: string;
+  plaza?: string;
   categoria_id: number;
   hsm_personalizadas?: number;
   estatus_id: number;
@@ -13,6 +13,7 @@ export interface Docente {
   correo_institucional?: string;
   telefono?: string;
   turno: 'MATUTINO' | 'VESPERTINO' | 'MIXTO';
+  es_comodin?: boolean;
   areas_conocimiento?: AreaConocimiento[];
   areas_conocimiento_ids?: number[];
   // Campos PAD

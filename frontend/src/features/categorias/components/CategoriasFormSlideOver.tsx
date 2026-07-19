@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { X, Briefcase, Loader2 } from 'lucide-react';
-import { FlatInput, FlatSelect } from '../../../components/ui/Form';
+import { FlatInput } from '../../../components/ui/Form';
 import type { SyntheticEvent } from 'react';
 import type { CategoriaDocente } from '../../../types/categorias';
 import { categoriasService } from '../../../services/categorias.service';
@@ -31,7 +31,8 @@ export default function CategoriaFormSlideOver({ isOpen, categoria, onClose, onS
       siglas: formData.get('siglas') as string,
       hsm_base: Number(formData.get('hsm_base')),
       nivel_prioridad: Number(formData.get('nivel_prioridad')),
-      es_comodin: formData.get('es_comodin') === 'true',
+      permite_titular: categoria?.permite_titular ?? true,
+      permite_suplente: categoria?.permite_suplente ?? false,
     };
 
     try {
@@ -106,16 +107,7 @@ export default function CategoriaFormSlideOver({ isOpen, categoria, onClose, onS
                 required 
               />
             </div>
-
-            <FlatSelect 
-              name="es_comodin" 
-              label="Tipo de Asignación" 
-              defaultValue={categoria ? (categoria.es_comodin ? 'true' : 'false') : 'false'} 
-              options={[
-                { value: 'false', label: 'Estructurada (Requiere Perfil)' }, 
-                { value: 'true', label: 'Comodín (Cualquier área)' }
-              ]} 
-            />
+            {/* Removed es_comodin Select */}
           </div>
         </div>
         

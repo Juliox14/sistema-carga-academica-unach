@@ -4,5 +4,6 @@ export interface CategoriaDocente {
   siglas: string;
   hsm_base: number;
   nivel_prioridad: number;
-  es_comodin: boolean;
+  permite_titular: boolean;
+  permite_suplente: boolean;
 }

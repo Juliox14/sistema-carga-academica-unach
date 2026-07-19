@@ -35,7 +35,7 @@ def generar_reporte_carga_html(db: Session, docente_id: int) -> str:
     categoria = docente.categoria.nombre.upper() if docente.categoria else ""
     rfc = (docente.rfc or "").upper()
     curp = (docente.curp or "").upper()
-    fecha_ingreso = docente.fecha_ingreso.strftime("%d/%m/%Y") if docente.fecha_ingreso else ""
+    fecha_ingreso = docente.fecha_ingreso.strftime("%d/%m/%Y") if docente.fecha_ingreso else "" #type: ignore
     perfil_academico = (docente.perfil_academico or "").upper()
     ultimo_grado_estudio = (docente.ultimo_grado_estudio or "").upper()
     

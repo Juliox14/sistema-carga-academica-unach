@@ -178,7 +178,7 @@ def generar_reporte_pad_html(
                     <tr class="bg-gray" style="font-weight: bold; text-align: center; font-size: 8px;">
                         <td style="width: 8%;">PROG. EDUC.</td>
                         <td>UNIDAD DE COMPETENCIA</td>
-                        <td style="width: 3%;">S</td>
+                        <td style="width: 3%;">PDO</td>
                         <td style="width: 3%;">G</td>
                         <td style="width: 7%;">L</td>
                         <td style="width: 7%;">M</td>
@@ -211,7 +211,7 @@ def generar_reporte_pad_html(
                     <tr class="bg-gray" style="font-weight: bold; text-align: center; font-size: 8px;">
                         <td style="width: 8%;">PROG. EDUC.</td>
                         <td>UNIDAD DE COMPETENCIA</td>
-                        <td style="width: 3%;">S</td>
+                        <td style="width: 3%;">PDO</td>
                         <td style="width: 3%;">G</td>
                         <td style="width: 7%;">L</td>
                         <td style="width: 7%;">M</td>
@@ -410,7 +410,7 @@ def generar_reporte_pad_html(
 
                 <!-- Footer Notes -->
                 <div class="footer-note">
-                    S: SEMESTRE, G: GRUPO, HT: HORAS TEÓRICAS, HP: HORAS PRÁCTICAS, HD: HORAS DEFINITIVAS; SEMESTRE, G: GRUPO, HT: HORAS TEÓRICAS, HP: HORAS PRÁCTICAS, L.S.C.: LICENCIATURA EN SISTEMAS COMPUTACIONALES, L.D.T.S.: LICENCIATURA EN DESARROLLO DE TECNOLOGÍAS DE SOFTWARE.
+                    PDO: PERIODO, G: GRUPO, HT: HORAS TEÓRICAS, HP: HORAS PRÁCTICAS, HD: HORAS DEFINITIVAS; G: GRUPO, HT: HORAS TEÓRICAS, HP: HORAS PRÁCTICAS, L.S.C.: LICENCIATURA EN SISTEMAS COMPUTACIONALES, L.D.T.S.: LICENCIATURA EN DESARROLLO DE TECNOLOGÍAS DE SOFTWARE.
                 </div>
 
                 <!-- Date and Page -->

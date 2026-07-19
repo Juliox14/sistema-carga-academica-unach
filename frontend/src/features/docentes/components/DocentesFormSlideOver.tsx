@@ -21,6 +21,7 @@ export default function DocenteFormSlideOver({ isOpen, docente, categoriasOption
   const [estatusList, setEstatusList] = useState<EstatusDocente[]>([]);
   const [selectedEstatusId, setSelectedEstatusId] = useState<number>(0);
   const [isSaving, setIsSaving] = useState(false);
+  const [esComodin, setEsComodin] = useState(false);
   const formRef = useRef<HTMLFormElement>(null);
 
   useEffect(() => {
@@ -31,7 +32,9 @@ export default function DocenteFormSlideOver({ isOpen, docente, categoriasOption
           setEstatusList(list);
           if (docente) {
             setSelectedEstatusId(docente.estatus_id);
+            setEsComodin(!!docente.es_comodin);
           } else {
+            setEsComodin(false);
             const activoStatus = list.find(l => l.nombre === 'ACTIVO');
             if (activoStatus) {
               setSelectedEstatusId(activoStatus.id);
@@ -62,21 +65,26 @@ export default function DocenteFormSlideOver({ isOpen, docente, categoriasOption
 
     const datos = {
       nombre: formData.get('nombre') as string,
-      apellidos: formData.get('apellidos') as string,
-      plaza: formData.get('plaza') as string,
+      apellidos: esComodin ? undefined : (formData.get('apellidos') as string) || undefined,
+      plaza: esComodin ? undefined : (formData.get('plaza') as string) || undefined,
       categoria_id: Number(formData.get('categoria_id')),
       hsm_personalizadas: formData.get('hsm_personalizadas') ? Number(formData.get('hsm_personalizadas')) : undefined,
       estatus_id: Number(formData.get('estatus_id')),
-      correo_institucional: (formData.get('correo_institucional') as string) || undefined,
-      telefono: (formData.get('telefono') as string) || undefined,
+      correo_institucional: esComodin ? undefined : (formData.get('correo_institucional') as string) || undefined,
+      telefono: esComodin ? undefined : (formData.get('telefono') as string) || undefined,
       turno: formData.get('turno') as any,
-      areas_conocimiento_ids: areasIds,
+      areas_conocimiento_ids: esComodin ? [] : areasIds,
+      es_comodin: esComodin,
       // Campos PAD
-      rfc: (formData.get('rfc') as string) || undefined,
-      curp: (formData.get('curp') as string) || undefined,
-      fecha_ingreso: (formData.get('fecha_ingreso') as string) || undefined,
-      perfil_academico: (formData.get('perfil_academico') as string) || undefined,
-      ultimo_grado_estudio: (formData.get('ultimo_grado_estudio') as string) || undefined,
+      rfc: esComodin ? undefined : (formData.get('rfc') as string) || undefined,
+      curp: esComodin ? undefined : (formData.get('curp') as string) || undefined,
+      fecha_ingreso: esComodin ? undefined : (formData.get('fecha_ingreso') as string) || undefined,
+      perfil_academico: esComodin ? undefined : (formData.get('perfil_academico') as string) || undefined,
+      ultimo_grado_estudio: esComodin ? undefined : (formData.get('ultimo_grado_estudio') as string) || undefined,
+      
+      // Vinculación unidad principal
+      es_unidad_principal: esComodin ? true : formData.get('es_unidad_principal') === 'on',
+      horas_obligatorias: esComodin ? undefined : (formData.get('horas_obligatorias') ? Number(formData.get('horas_obligatorias')) : undefined),
     };
 
     try {
@@ -120,13 +128,33 @@ export default function DocenteFormSlideOver({ isOpen, docente, categoriasOption
         <div className="p-6 flex-1 overflow-y-auto space-y-6">
           <div key={docente?.id || 'nuevo'} className="space-y-5">
             
-            <div className="grid grid-cols-2 gap-4">
-              <FlatInput name="nombre" label="Nombre(s)" defaultValue={docente?.nombre} placeholder="Ej. JUAN PABLO" className="uppercase" required />
-              <FlatInput name="apellidos" label="Apellidos" defaultValue={docente?.apellidos} placeholder="Ej. PÉREZ LÓPEZ" className="uppercase" required />
+            {/* Switch para Comodín */}
+            <div className="flex items-center justify-between bg-purple-50 p-4 border border-purple-100 rounded-xl">
+              <div>
+                <h4 className="text-sm font-semibold text-purple-950">Docente Comodín / Ficticio</h4>
+                <p className="text-xs text-purple-700">Active esta opción si es un docente auxiliar sin datos personales.</p>
+              </div>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input 
+                  type="checkbox" 
+                  checked={esComodin} 
+                  onChange={(e) => setEsComodin(e.target.checked)} 
+                  className="sr-only peer" 
+                />
+                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-purple-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"></div>
+              </label>
             </div>
+            
+            {esComodin ? (
+              <FlatInput name="nombre" label="Nombre del Comodín" defaultValue={docente?.nombre} placeholder="Ej. COMODIN PROGRAMACIÓN 1" className="uppercase" required />
+            ) : (
+              <div className="grid grid-cols-2 gap-4">
+                <FlatInput name="nombre" label="Nombre(s)" defaultValue={docente?.nombre} placeholder="Ej. JUAN PABLO" className="uppercase" required />
+                <FlatInput name="apellidos" label="Apellidos" defaultValue={docente?.apellidos} placeholder="Ej. PÉREZ LÓPEZ" className="uppercase" required />
+              </div>
+            )}
 
-            <div className="grid grid-cols-2 gap-4">
-              <FlatInput name="plaza" label="Clave de Plaza" defaultValue={docente?.plaza} placeholder="Ej. E3815" className="uppercase" required />
+            {esComodin ? (
               <FlatSelect 
                 name="estatus_id"
                 label="Estatus" 
@@ -137,12 +165,28 @@ export default function DocenteFormSlideOver({ isOpen, docente, categoriasOption
                   label: est.nombre
                 }))} 
               />
-            </div>
+            ) : (
+              <div className="grid grid-cols-2 gap-4">
+                <FlatInput name="plaza" label="Clave de Plaza" defaultValue={docente?.plaza} placeholder="Ej. E3815" className="uppercase" required />
+                <FlatSelect 
+                  name="estatus_id"
+                  label="Estatus" 
+                  value={selectedEstatusId} 
+                  onChange={(e) => setSelectedEstatusId(Number(e.target.value))}
+                  options={estatusList.map(est => ({
+                    value: String(est.id),
+                    label: est.nombre
+                  }))} 
+                />
+              </div>
+            )}
 
-            <div className="grid grid-cols-2 gap-4">
-              <FlatInput name="correo_institucional" type="email" label="Correo Institucional" defaultValue={docente?.correo_institucional} placeholder="Ej. juan.perez@unach.mx" />
-              <FlatInput name="telefono" label="Teléfono" defaultValue={docente?.telefono} placeholder="Ej. 961 123 4567" />
-            </div>
+            {!esComodin && (
+              <div className="grid grid-cols-2 gap-4">
+                <FlatInput name="correo_institucional" type="email" label="Correo Institucional" defaultValue={docente?.correo_institucional} placeholder="Ej. juan.perez@unach.mx" />
+                <FlatInput name="telefono" label="Teléfono" defaultValue={docente?.telefono} placeholder="Ej. 961 123 4567" />
+              </div>
+            )}
 
             <FlatSelect name="categoria_id" label="Categoría de Contratación" defaultValue={docente ? String(docente.categoria_id) : ''} options={categoriasOptions} />
             
@@ -160,75 +204,100 @@ export default function DocenteFormSlideOver({ isOpen, docente, categoriasOption
               <FlatInput name="hsm_personalizadas" label="HSM Personalizadas (Opcional)" type="number" min="0" step="0.5" defaultValue={docente?.hsm_personalizadas || ''} placeholder="Diferente a categoría" />
             </div>
 
-            {/* ─── Información para PAD ─── */}
-            <div className="pt-2">
-              <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3 block border-b border-gray-200 pb-1">
-                Información para Reporte PAD
-              </label>
-              <div className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <FlatInput
-                    name="rfc"
-                    label="RFC"
-                    defaultValue={docente?.rfc}
-                    placeholder="Ej. PELJ800101ABC"
-                    className="uppercase"
-                    maxLength={13}
-                  />
-                  <FlatInput
-                    name="curp"
-                    label="CURP"
-                    defaultValue={docente?.curp}
-                    placeholder="Ej. PELJ800101HCHRNN09"
-                    className="uppercase"
-                    maxLength={18}
-                  />
-                </div>
-                <FlatInput
-                  name="fecha_ingreso"
-                  type="date"
-                  label="Fecha de Ingreso"
-                  defaultValue={docente?.fecha_ingreso}
-                />
-                <FlatInput
-                  name="perfil_academico"
-                  label="Perfil Académico"
-                  defaultValue={docente?.perfil_academico}
-                  placeholder="Ej. Ingeniería en Sistemas Computacionales"
-                />
-                <FlatInput
-                  name="ultimo_grado_estudio"
-                  label="Último Grado de Estudio"
-                  defaultValue={docente?.ultimo_grado_estudio}
-                  placeholder="Ej. Maestría en Ciencias Computacionales"
-                />
-              </div>
-            </div>
-
-            {/* Grid de Checkboxes para Áreas de Conocimiento */}
-            <div className="pt-2">
-              <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3 block">
-                Áreas de Conocimiento
-              </label>
-              <div className="grid grid-cols-2 gap-3 max-h-48 overflow-y-auto p-2 border border-gray-100 bg-gray-50 rounded-sm">
-                {areasDisponibles.map(area => (
-                  <label key={area.id} className="flex items-start gap-2 cursor-pointer hover:bg-gray-100 p-1 rounded transition-colors">
+            {/* Vinculación con Unidad Principal */}
+            {!esComodin && (
+              <div className="pt-2">
+                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3 block border-b border-gray-200 pb-1">
+                  Vinculación
+                </label>
+                <div className="flex items-center gap-4 mb-4">
+                  <label className="relative inline-flex items-center cursor-pointer">
                     <input 
                       type="checkbox" 
-                      name="areas_conocimiento_ids" 
-                      value={area.id} 
-                      defaultChecked={hasArea(area.id!)}
-                      className="mt-0.5"
+                      name="es_unidad_principal"
+                      defaultChecked={true}
+                      className="sr-only peer" 
                     />
-                    <span className="text-sm text-gray-700 leading-tight">{area.nombre}</span>
+                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#002d55]"></div>
+                    <span className="ml-3 text-sm font-medium text-gray-700">Esta es su Unidad Principal</span>
                   </label>
-                ))}
-                {areasDisponibles.length === 0 && (
-                  <span className="text-sm text-gray-400 col-span-2">No hay áreas registradas.</span>
-                )}
+                </div>
+                <FlatInput name="horas_obligatorias" label="Horas Obligatorias en esta Sede" type="number" min="0" step="0.5" defaultValue={''} placeholder="Horas base a cumplir aquí" />
               </div>
-            </div>
-
+            )}
+            
+            {/* ─── Información para PAD ─── */}
+            {!esComodin && (
+              <div className="pt-2">
+                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3 block border-b border-gray-200 pb-1">
+                  Información para Reporte PAD
+                </label>
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <FlatInput
+                      name="rfc"
+                      label="RFC"
+                      defaultValue={docente?.rfc}
+                      placeholder="Ej. PELJ800101ABC"
+                      className="uppercase"
+                      maxLength={13}
+                    />
+                    <FlatInput
+                      name="curp"
+                      label="CURP"
+                      defaultValue={docente?.curp}
+                      placeholder="Ej. PELJ800101HCHRNN09"
+                      className="uppercase"
+                      maxLength={18}
+                    />
+                  </div>
+                  <FlatInput
+                    name="fecha_ingreso"
+                    type="date"
+                    label="Fecha de Ingreso"
+                    defaultValue={docente?.fecha_ingreso}
+                  />
+                  <FlatInput
+                    name="perfil_academico"
+                    label="Perfil Académico"
+                    defaultValue={docente?.perfil_academico}
+                    placeholder="Ej. Ingeniería en Sistemas Computacionales"
+                  />
+                  <FlatInput
+                    name="ultimo_grado_estudio"
+                    label="Último Grado de Estudio"
+                    defaultValue={docente?.ultimo_grado_estudio}
+                    placeholder="Ej. Maestría en Ciencias Computacionales"
+                  />
+                </div>
+              </div>
+            )}
+ 
+            {/* Grid de Checkboxes para Áreas de Conocimiento */}
+            {!esComodin && (
+              <div className="pt-2">
+                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3 block">
+                  Áreas de Conocimiento
+                </label>
+                <div className="grid grid-cols-2 gap-3 max-h-48 overflow-y-auto p-2 border border-gray-100 bg-gray-50 rounded-sm">
+                  {areasDisponibles.map(area => (
+                    <label key={area.id} className="flex items-start gap-2 cursor-pointer hover:bg-gray-100 p-1 rounded transition-colors">
+                      <input 
+                        type="checkbox" 
+                        name="areas_conocimiento_ids" 
+                        value={area.id} 
+                        defaultChecked={hasArea(area.id!)}
+                        className="mt-0.5"
+                      />
+                      <span className="text-sm text-gray-700 leading-tight">{area.nombre}</span>
+                    </label>
+                  ))}
+                  {areasDisponibles.length === 0 && (
+                    <span className="text-sm text-gray-400 col-span-2">No hay áreas registradas.</span>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
         </div>
         

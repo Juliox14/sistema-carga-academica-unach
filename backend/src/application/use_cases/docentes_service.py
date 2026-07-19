@@ -1,11 +1,13 @@
 from sqlalchemy.orm import Session
-from src.infrastructure.database.orm_models import Docente, AreaConocimiento, EstatusDocente
+from src.infrastructure.database.orm_models import Docente, AreaConocimiento, EstatusDocente, DocenteUnidad
 from src.infrastructure.api.schemas.docentes_schema import DocenteCreate, DocenteUpdate
 
-def crear_docente(db: Session, docente_data: DocenteCreate):
+def crear_docente(db: Session, docente_data: DocenteCreate, unidad_id: int | None = None):
     # 1. Separamos los IDs de las áreas del resto de los datos
-    datos_dict = docente_data.model_dump(exclude={"areas_conocimiento_ids"})
+    datos_dict = docente_data.model_dump(exclude={"areas_conocimiento_ids", "horas_obligatorias", "es_unidad_principal"})
     areas_ids = docente_data.areas_conocimiento_ids
+    horas_obligatorias = docente_data.horas_obligatorias
+    es_unidad_principal = docente_data.es_unidad_principal
     
     # Asegurar mayúsculas en nombre, apellidos y plaza
     if "nombre" in datos_dict and datos_dict["nombre"]:
@@ -28,21 +30,43 @@ def crear_docente(db: Session, docente_data: DocenteCreate):
     db.add(nuevo_docente)
     db.commit()
     db.refresh(nuevo_docente)
+    # Vincular a la unidad academica si se provee
+    if unidad_id:
+        if es_unidad_principal:
+            # Desmarcar otras unidades principales del docente si esta es la principal
+            db.query(DocenteUnidad).filter(DocenteUnidad.docente_id == nuevo_docente.id).update({"es_unidad_principal": False})
+        
+        db.add(DocenteUnidad(
+            docente_id=nuevo_docente.id, 
+            unidad_academica_id=unidad_id,
+            es_unidad_principal=es_unidad_principal,
+            horas_obligatorias=horas_obligatorias
+        ))
+        db.commit()
+        db.refresh(nuevo_docente)
     
     return nuevo_docente
 
-def obtener_docentes(db: Session):
-    return db.query(Docente).all()
+def obtener_docentes(db: Session, unidad_id: int | None = None):
+    q = db.query(Docente)
+    if unidad_id is not None:
+        q = q.join(DocenteUnidad, DocenteUnidad.docente_id == Docente.id).filter(
+            DocenteUnidad.unidad_academica_id == unidad_id
+        )
+    return q.all()
 
 def obtener_docente_por_id(db: Session, docente_id: int):
     return db.query(Docente).filter(Docente.id == docente_id).first()
 
-def actualizar_docente(db: Session, docente_id: int, docente_data: DocenteUpdate):
+def actualizar_docente(db: Session, docente_id: int, docente_data: DocenteUpdate, unidad_id: int | None = None):
     db_docente = db.query(Docente).filter(Docente.id == docente_id).first()
     if not db_docente:
         return None
         
     datos_actualizar = docente_data.model_dump(exclude_unset=True)
+    
+    horas_obligatorias = datos_actualizar.pop("horas_obligatorias", None)
+    es_unidad_principal = datos_actualizar.pop("es_unidad_principal", None)
     
     # Asegurar mayúsculas en nombre, apellidos y plaza
     if "nombre" in datos_actualizar and datos_actualizar["nombre"]:
@@ -62,6 +86,25 @@ def actualizar_docente(db: Session, docente_id: int, docente_data: DocenteUpdate
         
     db.commit()
     db.refresh(db_docente)
+    
+    # Actualizar vinculo con unidad si aplica
+    if unidad_id and (horas_obligatorias is not None or es_unidad_principal is not None):
+        vinculo = db.query(DocenteUnidad).filter_by(docente_id=docente_id, unidad_academica_id=unidad_id).first()
+        if vinculo:
+            if horas_obligatorias is not None:
+                vinculo.horas_obligatorias = horas_obligatorias
+            if es_unidad_principal is not None:
+                if es_unidad_principal:
+                    # Desmarcar otras unidades principales
+                    db.query(DocenteUnidad).filter(
+                        DocenteUnidad.docente_id == docente_id, 
+                        DocenteUnidad.unidad_academica_id != unidad_id
+                    ).update({"es_unidad_principal": False})
+                vinculo.es_unidad_principal = es_unidad_principal
+                
+            db.commit()
+            db.refresh(db_docente)
+            
     return db_docente
 
 def eliminar_docente(db: Session, docente_id: int):
@@ -90,7 +133,7 @@ def eliminar_docente(db: Session, docente_id: int):
     db.delete(db_docente)
     
     # 6. Si tiene un usuario vinculado, eliminarlo para evitar usuarios huérfanos
-    if usuario_id:
+    if usuario_id: #type: ignore
         usuario = db.query(Usuario).filter(Usuario.id == usuario_id).first()
         if usuario:
             db.delete(usuario)
@@ -98,7 +141,7 @@ def eliminar_docente(db: Session, docente_id: int):
     db.commit()
     return True
 
-async def importar_docentes(db: Session, byte_object):
+async def importar_docentes(db: Session, byte_object, unidad_id: int | None = None):
     from io import BytesIO
     import openpyxl as xl
     from src.infrastructure.database.orm_models import CategoriaDocente, Docente, Turno
@@ -106,6 +149,9 @@ async def importar_docentes(db: Session, byte_object):
         byte_object.seek(0)
         wb = xl.load_workbook(byte_object)
         sheet = wb["docentes"] if "docentes" in wb.sheetnames else wb.active
+        
+        if sheet is None:
+            raise ValueError("No se pudo encontrar la hoja de cálculo 'docentes' para importar.")
         objects = []
         headers = [str(cell.value).strip() if cell.value is not None else "" for cell in sheet[1]]
 
@@ -176,7 +222,7 @@ async def importar_docentes(db: Session, byte_object):
                 try:
                     hsm_str = str(hsm_raw).strip()
                     if hsm_str not in ("", "—", "-", "_"):
-                        hsm = float(hsm_raw)
+                        hsm = float(hsm_raw) #type: ignore
                 except ValueError:
                     pass
 
@@ -199,14 +245,14 @@ async def importar_docentes(db: Session, byte_object):
                 docente_db = db.query(Docente).filter(Docente.plaza == plaza).first()
 
             if docente_db:
-                docente_db.nombre = nombres
-                docente_db.apellidos = apellidos
-                docente_db.categoria_id = categoria_id
-                docente_db.correo_institucional = correo
-                docente_db.telefono = tel
-                docente_db.estatus_id = estatus_id
-                docente_db.turno = turno
-                docente_db.hsm_personalizadas = hsm
+                docente_db.nombre = nombres #type: ignore
+                docente_db.apellidos = apellidos #type: ignore
+                docente_db.categoria_id = categoria_id #type: ignore
+                docente_db.correo_institucional = correo #type: ignore
+                docente_db.telefono = tel #type: ignore
+                docente_db.estatus_id = estatus_id #type: ignore
+                docente_db.turno = turno #type: ignore
+                docente_db.hsm_personalizadas = hsm #type: ignore
                 objects.append(docente_db)
             else:
                 nuevo_docente = Docente(
@@ -224,6 +270,16 @@ async def importar_docentes(db: Session, byte_object):
                 objects.append(nuevo_docente)
 
         db.commit()
+        
+        # Vincular a la unidad si aplica
+        if unidad_id:
+            for obj in objects:
+                # Verificar si ya esta vinculado
+                vinculo = db.query(DocenteUnidad).filter_by(docente_id=obj.id, unidad_academica_id=unidad_id).first()
+                if not vinculo:
+                    db.add(DocenteUnidad(docente_id=obj.id, unidad_academica_id=unidad_id))
+            db.commit()
+            
         for obj in objects:
             db.refresh(obj)
 

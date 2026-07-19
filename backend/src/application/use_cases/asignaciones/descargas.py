@@ -3,7 +3,7 @@ from fastapi import HTTPException
 from src.infrastructure.database.orm_models import AsignacionCarga, EstadoAsignacion
 from src.infrastructure.api.schemas.asignaciones_schema import AsignarDescargaRequest
 from src.infrastructure.config.settings_service import ConfiguracionService
-from .validaciones import _verificar_limite_hsm
+from .validaciones import _verificar_limite_hsm, _validar_tipo_asignacion_categoria
 
 def asignar_descarga(db: Session, datos: AsignarDescargaRequest):
     asignacion = db.query(AsignacionCarga).filter(AsignacionCarga.id == datos.asignacion_id).first()
@@ -26,8 +26,8 @@ def remover_descarga(db: Session, asignacion_id: int):
     if not asignacion:
         raise HTTPException(status_code=404, detail="Asignación no encontrada.")
     
-    # Al quitar la descarga, el titular recupera sus horas. Validamos que no rebase su límite.
-    
+    # Al quitar la descarga, el titular recupera sus horas. Validamos que no rebase su límite y que permita titularidades.
+    _validar_tipo_asignacion_categoria(db, asignacion.docente_titular_id, requiere_titular=True) # type: ignore
     _verificar_limite_hsm(db, asignacion.docente_titular_id, asignacion.materia.hsm) # type: ignore
     
     asignacion.motivo_descarga = None
