@@ -1,5 +1,5 @@
 import enum
-from sqlalchemy import Column, Integer, String, Boolean, ForeignKey, BigInteger, Text, Enum as SQLEnum, Table, DateTime, Float, Date
+from sqlalchemy import Column, Integer, String, Boolean, ForeignKey, BigInteger, Text, Enum as SQLEnum, Table, DateTime, Float, Date, UniqueConstraint
 from sqlalchemy.orm import declarative_base, relationship
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -50,6 +50,64 @@ docentes_areas_conocimiento = Table(
 )
 
 
+class UnidadAcademica(Base):
+    __tablename__ = 'unidades_academicas'
+
+    id = Column(BigInteger, primary_key=True, autoincrement=True)
+    nombre = Column(String(200), nullable=False)
+    clave = Column(String(20), nullable=False, unique=True)  # Abreviatura, ej: ETDA
+    campus = Column(Integer, nullable=False, default=1)       # Número de campus
+    ciudad = Column(String(100), nullable=True)               # Ciudad/municipio
+    direccion = Column(String(300), nullable=True)            # Dirección física
+
+    # Relaciones
+    programas_educativos = relationship("ProgramaEducativo", back_populates="unidad_academica")
+    usuarios = relationship("Usuario", back_populates="unidad_academica")
+    docentes_vinculados = relationship("DocenteUnidad", back_populates="unidad_academica")
+    ciclos_unidad = relationship("CicloEscolarUnidad", back_populates="unidad_academica")
+    plantillas_oficios = relationship("PlantillaOficio", back_populates="unidad_academica")
+
+
+class DocenteUnidad(Base):
+    """Tabla intermedia que vincula docentes con unidades académicas.
+    Un docente puede pertenecer a varias unidades, con una marcada como principal (opcional)."""
+    __tablename__ = 'docentes_unidades'
+
+    id = Column(BigInteger, primary_key=True, autoincrement=True)
+    docente_id = Column(BigInteger, ForeignKey('docentes.id', ondelete='CASCADE'), nullable=False)
+    unidad_academica_id = Column(BigInteger, ForeignKey('unidades_academicas.id', ondelete='CASCADE'), nullable=False)
+    es_unidad_principal: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    horas_obligatorias: Mapped[float] = mapped_column(Float, nullable=True)
+
+    __table_args__ = (
+        UniqueConstraint('docente_id', 'unidad_academica_id', name='uq_docente_unidad'),
+    )
+
+    # Relaciones
+    docente = relationship("Docente", back_populates="unidades")
+    unidad_academica = relationship("UnidadAcademica", back_populates="docentes_vinculados")
+
+
+class CicloEscolarUnidad(Base):
+    """Estado del ciclo escolar por unidad académica.
+    El ciclo es global (definición), pero su estado activo/carga_finalizada varía por unidad."""
+    __tablename__ = 'ciclos_escolares_unidades'
+
+    id = Column(BigInteger, primary_key=True, autoincrement=True)
+    ciclo_escolar_id = Column(BigInteger, ForeignKey('ciclos_escolares.id', ondelete='CASCADE'), nullable=False)
+    unidad_academica_id = Column(BigInteger, ForeignKey('unidades_academicas.id', ondelete='CASCADE'), nullable=False)
+    activo: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    carga_finalizada: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+
+    __table_args__ = (
+        UniqueConstraint('ciclo_escolar_id', 'unidad_academica_id', name='uq_ciclo_unidad'),
+    )
+
+    # Relaciones
+    ciclo_escolar = relationship("CicloEscolar", back_populates="estados_por_unidad")
+    unidad_academica = relationship("UnidadAcademica", back_populates="ciclos_unidad")
+
+
 class Rol(Base):
     __tablename__ = 'roles'
 
@@ -65,15 +123,19 @@ class Usuario(Base):
     __tablename__ = 'usuarios'
 
     id = Column(BigInteger, primary_key=True, autoincrement=True)
+    nombre = Column(String(200), nullable=True)
     email_institucional: Mapped[str] = mapped_column(String(150), unique=True, nullable=False)
     password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
     rol_id = Column(BigInteger, ForeignKey('roles.id'), nullable=False)
     activo: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     requiere_cambio_password: Mapped[bool] = mapped_column(Boolean, default=False, server_default="0", nullable=False)
+    # NULL para SUPER_ADMIN, obligatorio para SECRETARIA_ACADEMICA y CAPTURISTA
+    unidad_academica_id: Mapped[int | None] = mapped_column(BigInteger, ForeignKey('unidades_academicas.id'), nullable=True)
 
     # Relaciones
     rol = relationship("Rol", back_populates="usuarios")
     docente = relationship("Docente", back_populates="usuario", uselist=False)
+    unidad_academica = relationship("UnidadAcademica", back_populates="usuarios")
 
 
 class CategoriaDocente(Base):
@@ -84,6 +146,9 @@ class CategoriaDocente(Base):
     siglas = Column(String(20), nullable=False)
     hsm_base: Mapped[int] = mapped_column(Integer, nullable=False)
     nivel_prioridad = Column(Integer, nullable=False)
+    permite_titular: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    permite_suplente: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+
     # Relaciones
     docentes = relationship("Docente", back_populates="categoria")
 
@@ -108,9 +173,11 @@ class ProgramaEducativo(Base):
     clave = Column(String(50), nullable=False)
     activo = Column(Boolean, default=True, nullable=False)
     nivel = Column(String(50), nullable=False, default="LICENCIATURA")
+    unidad_academica_id = Column(BigInteger, ForeignKey('unidades_academicas.id'), nullable=True)
 
     # Relaciones
     planes_estudio = relationship("PlanEstudios", back_populates="programa_educativo")
+    unidad_academica = relationship("UnidadAcademica", back_populates="programas_educativos")
 
 
 class PlanEstudios(Base):
@@ -138,14 +205,15 @@ class CicloEscolar(Base):
     mes_final = Column(Integer, nullable=False)  # 1 al 12
     anio = Column(Integer, nullable=False)       # Ej. 2026
     
-    activo = Column(Boolean, default=False)
-    carga_finalizada: Mapped[Boolean] = mapped_column(Boolean, default=False, nullable=False)
+    activo: Mapped[bool] = mapped_column(Boolean, default=False)
+    carga_finalizada: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
 
     # Relaciones
     grupos_abiertos = relationship("GrupoAbierto", back_populates="ciclo_escolar")
     asignaciones_carga = relationship("AsignacionCarga", back_populates="ciclo_escolar")
     # Agregamos la relación hacia las otras actividades
     asignaciones_otras_actividades = relationship("AsignacionOtraActividad", back_populates="ciclo_escolar")
+    estados_por_unidad = relationship("CicloEscolarUnidad", back_populates="ciclo_escolar", cascade="all, delete-orphan")
 
 class EstatusDocente(Base):
     __tablename__ = 'estatus_docentes'
@@ -163,16 +231,17 @@ class Docente(Base):
     __tablename__ = 'docentes'
 
     id = Column(BigInteger, primary_key=True, autoincrement=True)
-    nombre = Column(String(100), nullable=False)
-    apellidos = Column(String(100), nullable=False)
-    plaza: Mapped[String] = mapped_column(String(50), nullable=False)
+    nombre: Mapped[String] = mapped_column(String(100), nullable=False)
+    apellidos: Mapped[String | None] = mapped_column(String(100), nullable=True)
+    plaza: Mapped[String | None] = mapped_column(String(50), nullable=True)
     categoria_id: Mapped[BigInteger] = mapped_column(BigInteger, ForeignKey('categorias_docentes.id'), nullable=False)
     hsm_personalizadas: Mapped[float | None] = mapped_column(Float, nullable=True)
-    estatus_id = Column(BigInteger, ForeignKey('estatus_docentes.id'), nullable=True)
-    correo_institucional = Column(String(150), nullable=True)
-    telefono = Column(String(30), nullable=True)
-    usuario_id = Column(BigInteger, ForeignKey('usuarios.id'), unique=True, nullable=True)
+    estatus_id: Mapped[BigInteger | None] = mapped_column(BigInteger, ForeignKey('estatus_docentes.id'), nullable=True)
+    correo_institucional: Mapped[String | None] = mapped_column(String(150), nullable=True)
+    telefono: Mapped[String | None] = mapped_column(String(30), nullable=True)
+    usuario_id: Mapped[BigInteger | None] = mapped_column(BigInteger, ForeignKey('usuarios.id'), unique=True, nullable=True)
     turno: Mapped[Turno] = mapped_column(SQLEnum(Turno), nullable=False, default=Turno.MIXTO)
+    es_comodin: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     rfc = Column(String(13), nullable=True)
     curp = Column(String(18), nullable=True)
     fecha_ingreso = Column(Date, nullable=True)
@@ -187,6 +256,7 @@ class Docente(Base):
     asignaciones_titular = relationship("AsignacionCarga", foreign_keys='AsignacionCarga.docente_titular_id', back_populates="docente_titular")
     asignaciones_temporal = relationship("AsignacionCarga", foreign_keys='AsignacionCarga.docente_temporal_id', back_populates="docente_temporal")
     otras_actividades = relationship("AsignacionOtraActividad", back_populates="docente")
+    unidades = relationship("DocenteUnidad", back_populates="docente", cascade="all, delete-orphan")
 
 
 class Materia(Base):
@@ -199,6 +269,7 @@ class Materia(Base):
     hsm: Mapped[int] = mapped_column(Integer, nullable=False)
     area_conocimiento_id = Column(BigInteger, ForeignKey('areas_conocimiento.id'), nullable=False)
     estatus = Column(SQLEnum(EstatusMateria), default=EstatusMateria.ACTIVA, nullable=False)
+    es_especial: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
 
     # Relaciones
     plan_estudio = relationship("PlanEstudios", back_populates="materias")
@@ -215,6 +286,7 @@ class GrupoAbierto(Base):
     numero_periodo: Mapped[int|None] = mapped_column(Integer, nullable=True)  # Puede ser null para grupos que no siguen la estructura tradicional
     grupo = Column(String(5), nullable=False)
     turno = Column(SQLEnum(Turno), nullable=False)
+    es_especial: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
 
     # Relaciones
     ciclo_escolar = relationship("CicloEscolar", back_populates="grupos_abiertos")
@@ -239,6 +311,7 @@ class AsignacionOtraActividad(Base):
     id = Column(BigInteger, primary_key=True, autoincrement=True)
     actividad_id = Column(BigInteger, ForeignKey('otras_actividades.id'), nullable=False)
     docente_id = Column(BigInteger, ForeignKey('docentes.id'), nullable=False)
+    unidad_academica_id = Column(BigInteger, ForeignKey('unidades_academicas.id', ondelete='CASCADE'), nullable=True) # Migracion
     
     ciclo_escolar_id = Column(BigInteger, ForeignKey('ciclos_escolares.id'), nullable=False)
     horas_asignadas: Mapped[float] = mapped_column(Float, nullable=False)
@@ -276,10 +349,14 @@ class ConfiguracionSistema(Base):
     __tablename__ = 'configuracion_sistema'
 
     clave: Mapped[str] = mapped_column(String(100), primary_key=True)
+    unidad_academica_id = Column(BigInteger, ForeignKey('unidades_academicas.id', ondelete='CASCADE'), primary_key=True)
     modulo: Mapped[str] = mapped_column(String(50), nullable=False)
     nombre_descriptivo: Mapped[str] = mapped_column(String(150), nullable=False)
     tipo_dato: Mapped[str] = mapped_column(String(20), nullable=False)
     valor: Mapped[str] = mapped_column(String(255), nullable=False)
+    
+    # Relaciones
+    unidad_academica = relationship("UnidadAcademica")
 
 
 class PlantillaOficio(Base):
@@ -291,6 +368,8 @@ class PlantillaOficio(Base):
     contenido_html: Mapped[str] = mapped_column(Text, nullable=False)
     requiere_firma: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     es_activa: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    # NULL = plantilla base global (visible para todas las unidades)
+    unidad_academica_id: Mapped[int | None] = mapped_column(BigInteger, ForeignKey('unidades_academicas.id'), nullable=True)
 
     # Campos estructurados para diseño membretado fijo UNACH
     lugar_emision: Mapped[str | None] = mapped_column(String(150), nullable=True)
@@ -304,6 +383,7 @@ class PlantillaOficio(Base):
 
     # Relaciones
     oficios_emitidos = relationship("OficioDocente", back_populates="plantilla")
+    unidad_academica = relationship("UnidadAcademica", back_populates="plantillas_oficios")
 
 
 class OficioDocente(Base):
@@ -313,6 +393,8 @@ class OficioDocente(Base):
     docente_id: Mapped[BigInteger] = mapped_column(BigInteger, ForeignKey('docentes.id'), nullable=False)
     ciclo_id: Mapped[BigInteger] = mapped_column(BigInteger, ForeignKey('ciclos_escolares.id'), nullable=False)
     plantilla_id: Mapped[BigInteger] = mapped_column(BigInteger, ForeignKey('plantillas_oficios.id'), nullable=False)
+    # Unidad académica que emite el oficio
+    unidad_academica_id: Mapped[int | None] = mapped_column(BigInteger, ForeignKey('unidades_academicas.id'), nullable=True)
     estado: Mapped[EstadoOficio] = mapped_column(SQLEnum(EstadoOficio), default=EstadoOficio.EMITIDO, nullable=False)
     numero_oficio: Mapped[str] = mapped_column(String(50), nullable=False, unique=True)
     fecha_emision: Mapped[DateTime] = mapped_column(DateTime, nullable=False)

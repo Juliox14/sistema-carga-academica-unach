@@ -4,15 +4,19 @@ import Sidebar from '../components/Sidebar';
 import { Calendar as CalendarIcon, Lock } from 'lucide-react';
 import { ciclosService } from '../services/ciclos.service';
 import type { CicloEscolar } from '../types/ciclos';
+import { useAuthStore } from '../features/auth/store/useAuthStore';
 
 export default function MainLayout() {
+  const { user } = useAuthStore();
+  const isAdmin = user?.rol === 'SUPER_ADMIN';
   const [cicloActivo, setCicloActivo] = useState<CicloEscolar | null | undefined>(undefined);
 
   useEffect(() => {
+    if (isAdmin) return; // SuperAdmin doesn't need to fetch active cycle for header
     ciclosService.obtenerTodos()
       .then(ciclos => setCicloActivo(ciclos.find(c => c.activo) ?? null))
       .catch(() => setCicloActivo(null));
-  }, []);
+  }, [isAdmin]);
 
   return (
     <div className="flex h-screen bg-[#f3f4f6] font-sans overflow-hidden">
@@ -23,7 +27,11 @@ export default function MainLayout() {
           <h1 className="text-xl font-bold text-[#002d55]">SIPAD Portal</h1>
 
           {/* Badge de ciclo activo */}
-          {cicloActivo === undefined ? (
+          {isAdmin ? (
+            <div className="flex items-center gap-2 text-sm text-gray-500 bg-gray-50 px-3 py-1.5 rounded-md border border-gray-200">
+              <span className="font-medium">Vista de Administrador Global</span>
+            </div>
+          ) : cicloActivo === undefined ? (
             // Skeleton mientras carga
             <div className="flex items-center gap-2 bg-gray-100 px-3 py-1.5 rounded-md border border-gray-200 animate-pulse">
               <div className="w-4 h-4 bg-gray-300 rounded" />

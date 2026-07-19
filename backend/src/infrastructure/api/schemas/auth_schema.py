@@ -4,10 +4,12 @@ from datetime import date
 from src.infrastructure.api.schemas.docentes_schema import DocenteResponse
 
 class UsuarioRegistro(BaseModel):
+    nombre: Optional[str] = Field(default=None, description="Nombre completo del usuario (si no es docente)")
     email_institucional: EmailStr = Field(..., description="Correo institucional único del usuario")
     password: Optional[str] = Field(default=None, max_length=72, description="Contraseña del usuario. Se autogenera si se omite.")
     clave_rol: str = Field(default="DOCENTE", description="Clave del rol a asignar (ej: DOCENTE, SECRETARIA_ACADEMICA)")
     docente_id: Optional[int] = Field(default=None, description="ID del docente asociado (solo si el rol es DOCENTE)")
+    unidad_academica_id: Optional[int] = Field(default=None, description="ID de la unidad académica asociada al usuario")
 
 class UsuarioLogin(BaseModel):
     email_institucional: EmailStr = Field(..., description="Correo institucional del usuario")
@@ -18,6 +20,10 @@ class Token(BaseModel):
     token_type: str
     email: str
     rol: str
+    nombre: Optional[str] = None
+    unidad_academica_id: Optional[int] = None
+    unidad_academica_nombre: Optional[str] = None
+    unidad_academica_clave: Optional[str] = None
 
 class UsuarioResponse(BaseModel):
     id: int
@@ -29,6 +35,9 @@ class UsuarioResponse(BaseModel):
     requiere_cambio_password: bool = False
     nombre: Optional[str] = None
     docente: Optional[DocenteResponse] = None
+    unidad_academica_id: Optional[int] = None
+    unidad_academica_nombre: Optional[str] = None
+    unidad_academica_clave: Optional[str] = None
 
     model_config = ConfigDict(from_attributes=True)
 

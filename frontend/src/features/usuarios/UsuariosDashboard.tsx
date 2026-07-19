@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type SyntheticEvent } from 'react';
 import { useUsuariosStore } from './store/useUsuariosStore';
 import { useAuthStore } from '../auth/store/useAuthStore';
 import { Shield, UserPlus, ToggleLeft, ToggleRight, Loader2, Check, X, AlertTriangle, Trash2, Key, Copy, CheckCircle2 } from 'lucide-react';
@@ -14,9 +14,12 @@ export default function UsuariosDashboard() {
 
   const [modalOpen, setModalOpen] = useState(false);
   const [email, setEmail] = useState('');
+  const [nombreForm, setNombreForm] = useState('');
   const [password, setPassword] = useState('');
   const [selectedRole, setSelectedRole] = useState('DOCENTE');
   const [selectedDocenteId, setSelectedDocenteId] = useState<number | null>(null);
+  const [selectedUnidadId, setSelectedUnidadId] = useState<number | null>(null);
+  const [unidades, setUnidades] = useState<{ id: number; clave: string }[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Estado para mostrar las credenciales generadas al Super Admin
@@ -40,17 +43,23 @@ export default function UsuariosDashboard() {
     });
     fetchRoles();
     fetchDocentesSinUsuario();
-  }, [fetchUsuarios, fetchRoles, fetchDocentesSinUsuario]);
+    if (currentUser?.rol === 'SUPER_ADMIN') {
+      import('../../services/api').then(({ default: api }) => {
+        api.get('/unidades-academicas/').then(res => setUnidades(res.data)).catch(console.error);
+      });
+    }
+  }, [fetchUsuarios, fetchRoles, fetchDocentesSinUsuario, currentUser]);
 
   const handleOpenModal = () => {
     setEmail('');
     setPassword('');
     setSelectedRole('DOCENTE');
     setSelectedDocenteId(null);
+    setSelectedUnidadId(null);
     setModalOpen(true);
   };
 
-  const handleCreateUser = async (e: React.FormEvent) => {
+  const handleCreateUser = async (e: SyntheticEvent) => {
     e.preventDefault();
     if (!email.includes('@')) {
       toast.error('Por favor, ingresa un correo electrónico válido.');
@@ -70,7 +79,14 @@ export default function UsuariosDashboard() {
 
     setIsSubmitting(true);
     try {
-      const data = await crearUsuario(email, password || null, selectedRole, selectedDocenteId);
+      const data = await crearUsuario(
+        email, 
+        password, 
+        selectedRole, 
+        selectedRole === 'DOCENTE' ? selectedDocenteId : null,
+        selectedUnidadId,
+        selectedRole !== 'DOCENTE' ? (nombreForm || null) : null
+      );
       toast.success('Usuario registrado exitosamente.');
       setModalOpen(false);
 
@@ -129,7 +145,7 @@ export default function UsuariosDashboard() {
     }
   };
 
-  const handleResetPasswordSubmit = async (e: React.FormEvent) => {
+  const handleResetPasswordSubmit = async (e: SyntheticEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!resetPasswordUserId) return;
     if (newPassword.length < 6) {
@@ -152,10 +168,10 @@ export default function UsuariosDashboard() {
 
   const handleCopyCredentials = () => {
     if (!createdCredentials) return;
-    const text = `Correo: ${createdCredentials.email}\nContraseña Temporal: ${createdCredentials.password_temporal}`;
+    const text = createdCredentials.password_temporal;
     navigator.clipboard.writeText(text);
     setCopied(true);
-    toast.success('Credenciales copiadas al portapapeles.');
+    toast.success('Contraseña copiada al portapapeles.');
     setTimeout(() => setCopied(false), 2000);
   };
 
@@ -209,6 +225,7 @@ export default function UsuariosDashboard() {
                 <tr className="bg-gray-50/75 border-b border-gray-100 text-[10px] font-bold text-gray-400 uppercase tracking-widest">
                   <th className="px-6 py-4">Usuario</th>
                   <th className="px-6 py-4">Rol en el Sistema</th>
+                  <th className="px-6 py-4">Unidad Académica</th>
                   <th className="px-6 py-4">Estado</th>
                   <th className="px-6 py-4 text-center">Acciones</th>
                 </tr>
@@ -255,6 +272,17 @@ export default function UsuariosDashboard() {
                             </option>
                           ))}
                         </select>
+                      </td>
+
+                      {/* Unidad Académica Badge */}
+                      <td className="px-6 py-4">
+                        {usuario.unidad_academica_clave ? (
+                          <span className="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-bold bg-[#002d55]/5 text-[#002d55] border border-[#002d55]/10">
+                            {usuario.unidad_academica_clave}
+                          </span>
+                        ) : (
+                          <span className="text-xs text-gray-400 font-semibold italic">GLOBAL</span>
+                        )}
                       </td>
 
                       {/* Estado Activo Badge */}
@@ -388,6 +416,43 @@ export default function UsuariosDashboard() {
                       ))}
                     </select>
                   )}
+                </div>
+              )}
+
+              {/* Nombre (Opcional) para NO DOCENTES */}
+              {selectedRole !== 'DOCENTE' && (
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-gray-600 uppercase tracking-wide block">
+                    Nombre (Opcional)
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Juan Pérez"
+                    value={nombreForm}
+                    onChange={(e) => setNombreForm(e.target.value)}
+                    className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#002d55] focus:border-[#002d55] transition-all text-gray-700"
+                  />
+                </div>
+              )}
+
+              {/* Unidad Académica (Opcional, para SECRETARIA_ACADEMICA o CAPTURISTA) */}
+              {currentUser?.rol === 'SUPER_ADMIN' && selectedRole !== 'SUPER_ADMIN' && (
+                <div className="space-y-1.5 mt-4">
+                  <label className="text-xs font-bold text-gray-600 uppercase tracking-wide block">
+                    Unidad Académica (Opcional)
+                  </label>
+                  <select
+                    value={selectedUnidadId || ''}
+                    onChange={(e) => setSelectedUnidadId(e.target.value ? Number(e.target.value) : null)}
+                    className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#002d55] focus:border-[#002d55] transition-all text-gray-700 cursor-pointer"
+                  >
+                    <option value="">-- Sin unidad asignada --</option>
+                    {unidades.map((u) => (
+                      <option key={u.id} value={u.id}>
+                        {u.clave}
+                      </option>
+                    ))}
+                  </select>
                 </div>
               )}
 

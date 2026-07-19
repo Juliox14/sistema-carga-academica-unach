@@ -20,7 +20,7 @@ export default function InicioDashboard() {
   return (
     <div className="p-8 max-w-7xl mx-auto h-full flex flex-col space-y-6">
       {userRole === 'SUPER_ADMIN' && (
-        <AdminHome navigate={navigate} />
+        <AdminHome displayNombre={displayNombre} navigate={navigate} />
       )}
       {userRole === 'SECRETARIA_ACADEMICA' && (
         <SecretariaHome displayNombre={displayNombre} navigate={navigate} />

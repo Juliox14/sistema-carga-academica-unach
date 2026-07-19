@@ -97,11 +97,13 @@ export default function UserProfileCard({ collapsed }: UserProfileCardProps) {
         </div>
         {!collapsed && (
           <div className="min-w-0 flex-1">
-            <p className="text-white font-semibold text-xs truncate">
-              {getRoleLabel(user.rol)}
+            <p className="text-white font-semibold text-xs truncate" title={user.rol === 'DOCENTE' && user.docente ? `${user.docente.nombre} ${user.docente.apellidos}` : (user.nombre || getRoleLabel(user.rol))}>
+              {user.rol === 'DOCENTE' && user.docente 
+                ? `${user.docente.nombre} ${user.docente.apellidos}` 
+                : (user.nombre || getRoleLabel(user.rol))}
             </p>
             <p className="text-[#6B83D6] text-[10px] truncate" title={user.email}>
-              {user.email}
+              {getRoleLabel(user.rol)}
             </p>
           </div>
         )}

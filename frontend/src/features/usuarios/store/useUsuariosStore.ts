@@ -8,6 +8,9 @@ export interface Usuario {
   activo: boolean;
   rol_clave: string;
   rol_nombre: string;
+  unidad_academica_id?: number;
+  unidad_academica_clave?: string;
+  unidad_academica_nombre?: string;
 }
 
 export interface Rol {
@@ -25,7 +28,7 @@ interface UsuariosState {
   fetchUsuarios: () => Promise<void>;
   fetchRoles: () => Promise<void>;
   fetchDocentesSinUsuario: () => Promise<void>;
-  crearUsuario: (email: string, password: string | null, claveRol: string, docenteId?: number | null) => Promise<any>;
+  crearUsuario: (email: string, password: string | null, claveRol: string, docenteId?: number | null, unidadAcademicaId?: number | null, nombre?: string | null) => Promise<any>;
   toggleActivo: (usuarioId: number) => Promise<void>;
   cambiarRol: (usuarioId: number, claveRol: string) => Promise<void>;
   eliminarUsuario: (usuarioId: number) => Promise<void>;
@@ -67,28 +70,31 @@ export const useUsuariosStore = create<UsuariosState>((set) => ({
     }
   },
 
-  crearUsuario: async (email, password, claveRol, docenteId) => {
+  crearUsuario: async (email, password, claveRol, docenteId, unidadAcademicaId, nombre) => {
     set({ isLoading: true });
     try {
-      const response = await api.post('/auth/registro', {
+      const payload = {
         email_institucional: email,
         password: password || undefined,
         clave_rol: claveRol,
-        docente_id: docenteId || undefined
-      });
+        docente_id: docenteId || undefined,
+        unidad_academica_id: unidadAcademicaId || undefined,
+        nombre: nombre || undefined,
+      };
+      
+      const response = await api.post('/auth/registro', payload);
       const data = response.data;
       
       // Volver a listar para tener la tabla actualizada
       const listResponse = await api.get('/auth/usuarios');
-      set({ usuarios: listResponse.data, isLoading: false });
       
-      // Limpiar el docente creado de la lista de docentes sin usuario
-      if (docenteId) {
-        set((state) => ({
-          docentesSinUsuario: state.docentesSinUsuario.filter((d) => d.id !== docenteId)
-        }));
-      }
-
+      set((state) => ({ 
+        usuarios: listResponse.data,
+        isLoading: false,
+        // Limpiar el docente creado de la lista de docentes sin usuario
+        docentesSinUsuario: docenteId ? state.docentesSinUsuario.filter((d) => d.id !== docenteId) : state.docentesSinUsuario
+      }));
+      
       return data;
     } catch (error) {
       set({ isLoading: false });

@@ -117,7 +117,14 @@ def login(
         )
         usuario = auth_service.autenticar_usuario(db, credenciales)
         access_token = create_access_token(
-            data={"sub": usuario.email_institucional, "rol": usuario.rol_clave}
+            data={
+                "sub": usuario.email_institucional,
+                "rol": usuario.rol_clave,
+                "nombre": usuario.nombre,
+                "unidad_id": usuario.unidad_academica_id,
+                "unidad_nombre": usuario.unidad_academica_nombre,
+                "unidad_clave": usuario.unidad_academica_clave,
+            }
         )
         logger.info(
             f"Login exitoso: {usuario.email_institucional}",
@@ -128,7 +135,11 @@ def login(
             access_token=access_token,
             token_type="bearer",
             email=usuario.email_institucional,
-            rol=usuario.rol_clave
+            rol=usuario.rol_clave,
+            nombre=usuario.nombre,
+            unidad_academica_id=usuario.unidad_academica_id,
+            unidad_academica_nombre=usuario.unidad_academica_nombre,
+            unidad_academica_clave=usuario.unidad_academica_clave,
         )
     except ValueError as e:
         logger.warning(
@@ -159,7 +170,11 @@ def obtener_perfil(
         )
         current_user.rol_clave = current_user.rol.clave if current_user.rol else None
         current_user.rol_nombre = current_user.rol.nombre if current_user.rol else None
-        current_user.nombre = f"{current_user.docente.nombre} {current_user.docente.apellidos}" if current_user.docente else None
+        if current_user.docente:
+            current_user.nombre = f"{current_user.docente.nombre} {current_user.docente.apellidos}"
+        current_user.unidad_academica_id = current_user.unidad_academica.id if current_user.unidad_academica else None
+        current_user.unidad_academica_nombre = current_user.unidad_academica.nombre if current_user.unidad_academica else None
+        current_user.unidad_academica_clave = current_user.unidad_academica.clave if current_user.unidad_academica else None
         return current_user
     except Exception as e:
         logger.error(
@@ -194,7 +209,7 @@ def actualizar_mi_perfil_docente(
         )
         # Convertir a dict omitiendo None
         datos_dict = datos_pad.model_dump(exclude_unset=True)
-        docente_actualizado = auth_service.actualizar_pad_docente_actual(db, current_user.id, datos_dict)
+        docente_actualizado = auth_service.actualizar_pad_docente_actual(db, current_user.id, datos_dict) #type: ignore
         
         logger.info(
             f"PAD de docente actualizado exitosamente",

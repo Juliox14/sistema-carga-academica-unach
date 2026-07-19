@@ -55,7 +55,9 @@ def registrar_usuario(db: Session, registro: UsuarioRegistro) -> Usuario:
         password_hash=hashed_pw,
         rol_id=rol.id,
         activo=True,
-        requiere_cambio_password=True # Creado por Admin requiere cambio obligatorio
+        requiere_cambio_password=True, # Creado por Admin requiere cambio obligatorio
+        unidad_academica_id=registro.unidad_academica_id,
+        nombre=registro.nombre
     )
     
     db.add(nuevo_usuario)
@@ -69,14 +71,15 @@ def registrar_usuario(db: Session, registro: UsuarioRegistro) -> Usuario:
             raise ValueError("El docente especificado no existe")
         if docente.usuario_id is not None:
             raise ValueError("El docente ya está vinculado a un usuario")
-        docente.usuario_id = nuevo_usuario.id
+        docente.usuario_id = nuevo_usuario.id #type: ignore
         db.commit()
         db.refresh(nuevo_usuario)
     
     # Asignar rol_clave y rol_nombre para facilitar la visualización en la respuesta
     nuevo_usuario.rol_clave = rol.clave
     nuevo_usuario.rol_nombre = rol.nombre
-    nuevo_usuario.nombre = f"{nuevo_usuario.docente.nombre} {nuevo_usuario.docente.apellidos}" if nuevo_usuario.docente else None
+    if nuevo_usuario.docente:
+        nuevo_usuario.nombre = f"{nuevo_usuario.docente.nombre} {nuevo_usuario.docente.apellidos}"
     return nuevo_usuario, password_usada #type: ignore
 
 
@@ -105,10 +108,14 @@ def autenticar_usuario(db: Session, login: UsuarioLogin) -> Usuario:
     if not usuario.activo:
         raise ValueError("El usuario está inactivo")
         
-    # Añadir dinámicamente la clave del rol
+    # Anadir dinamicamente la clave del rol y datos de unidad
     usuario.rol_clave = usuario.rol.clave if usuario.rol else None
     usuario.rol_nombre = usuario.rol.nombre if usuario.rol else None
-    usuario.nombre = f"{usuario.docente.nombre} {usuario.docente.apellidos}" if usuario.docente else None
+    if usuario.docente:
+        usuario.nombre = f"{usuario.docente.nombre} {usuario.docente.apellidos}"
+    usuario.unidad_academica_id = usuario.unidad_academica.id if usuario.unidad_academica else None
+    usuario.unidad_academica_nombre = usuario.unidad_academica.nombre if usuario.unidad_academica else None
+    usuario.unidad_academica_clave = usuario.unidad_academica.clave if usuario.unidad_academica else None
     return usuario
 
 
@@ -120,7 +127,11 @@ def obtener_usuarios(db: Session):
     for u in usuarios:
         u.rol_clave = u.rol.clave if u.rol else None
         u.rol_nombre = u.rol.nombre if u.rol else None
-        u.nombre = f"{u.docente.nombre} {u.docente.apellidos}" if u.docente else None
+        if u.docente:
+            u.nombre = f"{u.docente.nombre} {u.docente.apellidos}"
+        u.unidad_academica_id = u.unidad_academica.id if u.unidad_academica else None
+        u.unidad_academica_nombre = u.unidad_academica.nombre if u.unidad_academica else None
+        u.unidad_academica_clave = u.unidad_academica.clave if u.unidad_academica else None
     return usuarios
 
 

@@ -2,9 +2,10 @@ import { PlayCircle, ClipboardList, Calendar, Settings, Shield, ArrowRight } fro
 
 interface AdminHomeProps {
   navigate: (path: string) => void;
+  displayNombre?: string;
 }
 
-export default function AdminHome({ navigate }: AdminHomeProps) {
+export default function AdminHome({ navigate, displayNombre = 'Administrador' }: AdminHomeProps) {
   const adminCards = [
     {
       title: 'Usuarios y Roles',
@@ -55,7 +56,7 @@ export default function AdminHome({ navigate }: AdminHomeProps) {
             Administración Central
           </div>
           <h2 className="text-2xl md:text-3xl font-extrabold tracking-tight">
-            Consola del Administrador
+            Hola, {displayNombre}
           </h2>
           <p className="text-red-200 text-sm leading-relaxed">
             Controle los privilegios del personal, configure plantillas institucionales oficiales de los oficios, y supervise la consistencia técnica de la base de datos.

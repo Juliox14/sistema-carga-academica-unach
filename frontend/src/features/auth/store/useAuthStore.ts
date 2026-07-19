@@ -8,13 +8,18 @@ interface UserProfile {
   rol: string;
   requiere_cambio_password: boolean;
   docente?: Docente;
+  unidad_academica_id?: number | null;
+  unidad_academica_nombre?: string | null;
+  unidad_academica_clave?: string | null;
 }
 
 interface AuthState {
   user: UserProfile | null;
   token: string | null;
   isLoading: boolean;
-  
+  isAdmin: () => boolean;
+  getUnidadId: () => number | null;
+
   login: (email: string, password: string) => Promise<void>;
   logout: () => void;
   cargarPerfil: () => Promise<boolean>;
@@ -26,6 +31,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   user: null,
   token: localStorage.getItem('sipad_token'),
   isLoading: false,
+
+  isAdmin: () => get().user?.rol === 'SUPER_ADMIN',
+  getUnidadId: () => get().user?.unidad_academica_id ?? null,
 
   login: async (email, password) => {
     set({ isLoading: true });
@@ -58,15 +66,18 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     set({ isLoading: true });
     try {
       const response = await api.get('/auth/me');
-      const { email_institucional, rol_clave, requiere_cambio_password, nombre, docente } = response.data;
-      
+      const { email_institucional, rol_clave, requiere_cambio_password, nombre, docente, unidad_academica_id, unidad_academica_nombre, unidad_academica_clave } = response.data;
+
       set({
-        user: { 
-          email: email_institucional, 
-          rol: rol_clave, 
+        user: {
+          email: email_institucional,
+          rol: rol_clave,
           nombre: nombre,
           requiere_cambio_password: requiere_cambio_password,
-          docente: docente
+          docente: docente,
+          unidad_academica_id: unidad_academica_id ?? null,
+          unidad_academica_nombre: unidad_academica_nombre ?? null,
+          unidad_academica_clave: unidad_academica_clave ?? null,
         },
         isLoading: false
       });

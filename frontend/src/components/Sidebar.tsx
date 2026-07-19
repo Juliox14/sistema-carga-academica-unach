@@ -13,8 +13,8 @@ const navItems = [
   { label: 'Inicio', icon: LayoutDashboard, path: '/' },
 
   // ─── PROCESOS OPERATIVOS ───
-  { label: 'Apertura de Grupos', icon: PlayCircle, path: '/aperturas' },
-  { label: 'Asignación Académica', icon: ClipboardList, path: '/asignacion' },
+  { label: 'Apertura de Grupos', icon: PlayCircle, path: '/aperturas', role: 'SECRETARIA_ACADEMICA' },
+  { label: 'Asignación Académica', icon: ClipboardList, path: '/asignacion', role: 'SECRETARIA_ACADEMICA' },
   { label: 'Creación de Horarios', icon: Calendar, path: '/horarios', role: 'SECRETARIA_ACADEMICA' },
 
   // ─── OFICIOS Y FIRMAS ───
@@ -36,6 +36,7 @@ const navItems = [
   // ─── GESTIÓN ───
   { label: 'Gestión Docente', icon: Users, path: '/docentes' },
   { label: 'Usuarios y Roles', icon: Shield, path: '/usuarios', role: 'SUPER_ADMIN' },
+  { label: 'Unidades Académicas', icon: Building2, path: '/unidades', role: 'SUPER_ADMIN' },
 
   // ─── CONFIGURACIÓN BASE ───
   {
@@ -62,6 +63,8 @@ export default function Sidebar() {
   const [collapsed, setCollapsed] = useState(false);
   const { user } = useAuthStore();
   const userRole = user?.rol;
+  const unidadNombre = user?.unidad_academica_nombre;
+  const unidadClave = user?.unidad_academica_clave;
 
   const filteredNavItems = navItems.filter(item => {
     // Rutas exclusivas para Docentes
@@ -71,17 +74,15 @@ export default function Sidebar() {
     
 
 
-    if (item.role) {
       if (item.role === 'SUPER_ADMIN' && userRole !== 'SUPER_ADMIN') {
         return false;
       }
-      if (item.role === 'SECRETARIA_ACADEMICA' && userRole !== 'SECRETARIA_ACADEMICA' && userRole !== 'SUPER_ADMIN') {
+      if (item.role === 'SECRETARIA_ACADEMICA' && userRole !== 'SECRETARIA_ACADEMICA') {
         return false;
       }
-      if (item.role === 'DOCENTE' && userRole !== 'DOCENTE' && userRole !== 'SUPER_ADMIN' && userRole !== 'SECRETARIA_ACADEMICA') {
+      if (item.role === 'DOCENTE' && userRole !== 'DOCENTE') {
         return false;
       }
-    }
     
     if (userRole === 'DOCENTE') {
       return item.label === 'Inicio' || item.label === 'Mi Carga y Firma' || item.label === 'Mis Preferencias';
@@ -119,7 +120,19 @@ export default function Sidebar() {
 
         {/* BUG 3 FIX: clase custom-scrollbar aplicada al nav */}
         <nav className="flex-1 overflow-y-auto overflow-x-hidden px-3 py-3 space-y-1 custom-scrollbar">
-          {!collapsed && <p className="text-[10px] font-semibold text-[#6B83D6] uppercase tracking-widest px-4 mb-2 mt-2">Panel de Control</p>}
+          {!collapsed && (
+            <div className="flex flex-col gap-0.5 px-4 mb-2 mt-2">
+              <p className="text-[10px] font-semibold text-[#6B83D6] uppercase tracking-widest">Panel de Control</p>
+              {unidadNombre && userRole !== 'SUPER_ADMIN' && (
+                <span className="text-[10px] font-medium text-white/60 truncate" title={unidadNombre}>
+                  🏫 {unidadClave ?? unidadNombre}
+                </span>
+              )}
+              {userRole === 'SUPER_ADMIN' && (
+                <span className="text-[10px] font-medium text-[#D4E600] truncate">⚡ Acceso Global</span>
+              )}
+            </div>
+          )}
           {filteredNavItems.map(item => <NavItem key={item.label} item={item} collapsed={collapsed} />)}
         </nav>
 
