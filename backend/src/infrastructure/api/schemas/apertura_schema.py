@@ -4,6 +4,7 @@ from typing import List
 class GrupoSugerido(BaseModel):
     grupo: str
     turno: str
+    es_especial: bool = False
 
 class PeriodoSugerido(BaseModel):
     numero_periodo: int
@@ -16,6 +17,7 @@ class GrupoAperturaInput(BaseModel):
     numero_periodo: int
     grupo: str
     turno: str
+    es_especial: bool = False
 
 class EjecutarAperturaRequest(BaseModel):
     plan_estudios_id: int
@@ -30,6 +32,7 @@ class GrupoAbiertoResponse(BaseModel):
     numero_periodo: int
     grupo: str
     turno: str
+    es_especial: bool = False
 
     class Config:
         from_attributes = True

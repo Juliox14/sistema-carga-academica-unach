@@ -120,14 +120,28 @@ export default function AperturaConfigPanel({
                               </select>
                             </div>
 
+                            {/* Especial */}
+                            {g.es_especial && (
+                              <div className="flex flex-col items-center justify-center shrink-0 px-2 mt-4">
+                                <span className="text-[9px] bg-amber-100 text-amber-700 px-2 py-0.5 rounded-sm uppercase font-bold tracking-wider">Especial</span>
+                              </div>
+                            )}
+
                             {/* Eliminar Grupo */}
-                            <button
-                              type="button"
-                              onClick={() => eliminarGrupo(idx)}
-                              className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg cursor-pointer transition-colors mt-4 self-center"
-                            >
-                              <Trash2 size={14} />
-                            </button>
+                            {!g.es_especial ? (
+                              <button
+                                type="button"
+                                onClick={() => eliminarGrupo(idx)}
+                                className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg cursor-pointer transition-colors mt-4 self-center"
+                                title="Eliminar Grupo"
+                              >
+                                <Trash2 size={14} />
+                              </button>
+                            ) : (
+                              <div className="p-2 text-amber-500 rounded-lg mt-4 self-center" title="Grupo Especial Obligatorio (No se puede eliminar)">
+                                <Info size={14} />
+                              </div>
+                            )}
                           </div>
                         );
                       })}

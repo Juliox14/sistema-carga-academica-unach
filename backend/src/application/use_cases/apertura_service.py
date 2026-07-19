@@ -2,9 +2,11 @@ from sqlalchemy.orm import Session
 from src.infrastructure.database.orm_models import CicloEscolar, GrupoAbierto, Materia
 from src.infrastructure.api.schemas.apertura_schema import EjecutarAperturaRequest
 
-def obtener_sugerencias_apertura(db: Session, plan_id: int):
+from src.application.use_cases.ciclos_service import obtener_ciclo_activo
+
+def obtener_sugerencias_apertura(db: Session, plan_id: int, unidad_id: int | None = None):
     # 1. Encontrar el ciclo activo actual
-    ciclo_actual = db.query(CicloEscolar).filter(CicloEscolar.activo == True).first()
+    ciclo_actual = obtener_ciclo_activo(db, unidad_id)
     if not ciclo_actual:
         return {"periodos": []}
         
@@ -22,6 +24,14 @@ def obtener_sugerencias_apertura(db: Session, plan_id: int):
         .filter(Materia.plan_estudios_id == plan_id)\
         .distinct().order_by(Materia.numero_periodo.asc()).all()
         
+    # Obtener periodos que tienen materias especiales activas
+    materias_especiales = db.query(Materia.numero_periodo).filter(
+        Materia.plan_estudios_id == plan_id,
+        Materia.es_especial == True,
+        Materia.estatus == "ACTIVA"
+    ).distinct().all()
+    periodos_especiales = {me[0] for me in materias_especiales}
+        
     result_periodos = []
     
     for p in periodos:
@@ -35,20 +45,28 @@ def obtener_sugerencias_apertura(db: Session, plan_id: int):
             target_periodo = num_periodo - 1
             
         if ciclo_anterior:
-            # Buscar los grupos del ciclo anterior en ese periodo
-            grupos_pasados = db.query(GrupoAbierto)\
-                .filter(
-                    GrupoAbierto.ciclo_escolar_id == ciclo_anterior.id,
-                    GrupoAbierto.plan_estudios_id == plan_id,
-                    GrupoAbierto.numero_periodo == target_periodo
-                ).all()
-            for gp in grupos_pasados:
+             # Buscar los grupos del ciclo anterior en ese periodo (filtrando los especiales)
+             grupos_pasados = db.query(GrupoAbierto)\
+                 .filter(
+                     GrupoAbierto.ciclo_escolar_id == ciclo_anterior.id,
+                     GrupoAbierto.plan_estudios_id == plan_id,
+                     GrupoAbierto.numero_periodo == target_periodo,
+                     GrupoAbierto.es_especial == False
+                 ).all()
+             for gp in grupos_pasados:
                 sugerencias.append({
                     "grupo": gp.grupo,
-                    "turno": gp.turno.name if hasattr(gp.turno, 'name') else str(gp.turno)
+                    "turno": gp.turno.name if hasattr(gp.turno, 'name') else str(gp.turno),
+                    "es_especial": False
                 })
                 
-        
+        # Si el periodo tiene materias especiales, forzar la sugerencia del grupo especial
+        if num_periodo in periodos_especiales:
+            sugerencias.append({
+                "grupo": "U",
+                "turno": "MIXTO",
+                "es_especial": True
+            })
             
         result_periodos.append({
             "numero_periodo": num_periodo,
@@ -58,14 +76,59 @@ def obtener_sugerencias_apertura(db: Session, plan_id: int):
     return {"periodos": result_periodos}
 
 
-def ejecutar_apertura_ciclo(db: Session, datos: EjecutarAperturaRequest):
+def ejecutar_apertura_ciclo(db: Session, datos: EjecutarAperturaRequest, unidad_id: int | None = None):
+    from fastapi import HTTPException
+    
     # 1. Obtener el ciclo activo donde se guardará la apertura
-    ciclo_actual = db.query(CicloEscolar).filter(CicloEscolar.activo == True).first()
+    ciclo_actual = obtener_ciclo_activo(db, unidad_id)
     if not ciclo_actual:
         return False
         
     # 2. Mapear solicitudes de grupos
-    solicitados = {(g.numero_periodo, g.grupo.upper()): g.turno.upper() for g in datos.grupos}
+    solicitados = {
+        (g.numero_periodo, g.grupo.upper()): {
+            "turno": g.turno.upper(),
+            "es_especial": g.es_especial
+        } for g in datos.grupos
+    }
+    
+    # 3. Validar reglas de grupos especiales
+    # Obtener periodos que tienen materias especiales activas
+    materias_especiales = db.query(Materia.numero_periodo).filter(
+        Materia.plan_estudios_id == datos.plan_estudios_id,
+        Materia.es_especial == True,
+        Materia.estatus == "ACTIVA"
+    ).distinct().all()
+    periodos_especiales = {me[0] for me in materias_especiales}
+    
+    # Agrupar las solicitudes de grupos por periodo
+    grupos_por_periodo = {}
+    for g in datos.grupos:
+        grupos_por_periodo.setdefault(g.numero_periodo, []).append(g)
+        
+    for p, grupos_list in grupos_por_periodo.items():
+        especiales_en_periodo = [g for g in grupos_list if g.es_especial]
+        
+        # Regla 1: No puede haber más de un grupo especial por periodo
+        if len(especiales_en_periodo) > 1:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Solo se permite un grupo especial por periodo. El Periodo {p} tiene {len(especiales_en_periodo)}."
+            )
+            
+        # Regla 2: Si el periodo tiene materias especiales, debe existir exactamente un grupo especial
+        if p in periodos_especiales and len(especiales_en_periodo) == 0:
+            raise HTTPException(
+                status_code=400,
+                detail=f"El Periodo {p} tiene materias especiales, por lo que requiere obligatoriamente que se defina un grupo especial."
+            )
+            
+        # Regla 3: Si el periodo NO tiene materias especiales, no puede haber grupos especiales
+        if p not in periodos_especiales and len(especiales_en_periodo) > 0:
+            raise HTTPException(
+                status_code=400,
+                detail=f"El Periodo {p} no tiene materias especiales, por lo que no se permite crear grupos especiales en él."
+            )
     
     # 3. Obtener grupos existentes para este plan en el ciclo actual
     existentes = db.query(GrupoAbierto).filter(
@@ -88,17 +151,19 @@ def ejecutar_apertura_ciclo(db: Session, datos: EjecutarAperturaRequest):
             db.delete(eg)
             
     # 5. Insertar o actualizar los solicitados
-    for (num_p, grp_letra), turno_str in solicitados.items():
+    for (num_p, grp_letra), info in solicitados.items():
         if (num_p, grp_letra) in existentes_dict:
             eg = existentes_dict[(num_p, grp_letra)]
-            eg.turno = turno_str #type: ignore
+            eg.turno = info["turno"] #type: ignore
+            eg.es_especial = info["es_especial"] #type: ignore
         else:
             nuevo_grupo = GrupoAbierto(
                 ciclo_escolar_id=ciclo_actual.id,
                 plan_estudios_id=datos.plan_estudios_id,
                 numero_periodo=num_p,
                 grupo=grp_letra,
-                turno=turno_str
+                turno=info["turno"],
+                es_especial=info["es_especial"]
             )
             db.add(nuevo_grupo)
             
@@ -106,12 +171,14 @@ def ejecutar_apertura_ciclo(db: Session, datos: EjecutarAperturaRequest):
     return True
 
 
-def listar_grupos_abiertos(db: Session):
-    ciclo_actual = db.query(CicloEscolar).filter(CicloEscolar.activo == True).first()
+def listar_grupos_abiertos(db: Session, unidad_id: int | None = None):
+    ciclo_actual = obtener_ciclo_activo(db, unidad_id)
     if not ciclo_actual:
         return []
         
-    grupos = db.query(GrupoAbierto).filter(GrupoAbierto.ciclo_escolar_id == ciclo_actual.id).all()
+    grupos = db.query(GrupoAbierto).filter(
+        GrupoAbierto.ciclo_escolar_id == ciclo_actual.id
+    ).all()
     
     res = []
     for g in grupos:
@@ -123,12 +190,13 @@ def listar_grupos_abiertos(db: Session):
             "plan_estudios_nombre": g.plan_estudio.nombre if g.plan_estudio else "",
             "numero_periodo": g.numero_periodo,
             "grupo": g.grupo,
-            "turno": g.turno.name if hasattr(g.turno, 'name') else str(g.turno)
+            "turno": g.turno.name if hasattr(g.turno, 'name') else str(g.turno),
+            "es_especial": g.es_especial
         })
     return res
 
-def eliminar_grupo_abierto(db: Session, grupo_id: int):
-    ciclo_actual = db.query(CicloEscolar).filter(CicloEscolar.activo == True).first()
+def eliminar_grupo_abierto(db: Session, grupo_id: int, unidad_id: int | None = None):
+    ciclo_actual = obtener_ciclo_activo(db, unidad_id)
     if not ciclo_actual:
         raise ValueError("No hay un ciclo escolar activo.")
 

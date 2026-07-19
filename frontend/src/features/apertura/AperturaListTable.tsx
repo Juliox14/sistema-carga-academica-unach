@@ -119,7 +119,14 @@ export default function AperturaListTable({
               <tr key={g.id} className="hover:bg-gray-50/50 transition-colors">
                 <td className="px-6 py-4 font-bold text-gray-800">{g.plan_estudios_nombre}</td>
                 <td className="px-6 py-4 font-semibold text-gray-500 text-center">{g.numero_periodo}° Nivel</td>
-                <td className="px-6 py-4 font-mono font-bold text-[#002d55] text-center">Grupo "{g.grupo}"</td>
+                <td className="px-6 py-4 text-center">
+                  <div className="flex items-center justify-center gap-2">
+                    <span className="font-mono font-bold text-[#002d55]">Grupo "{g.grupo}"</span>
+                    {g.es_especial && (
+                      <span className="text-[9px] bg-amber-100 text-amber-700 px-2 py-0.5 rounded-sm uppercase font-bold tracking-wider shrink-0">Especial</span>
+                    )}
+                  </div>
+                </td>
                 <td className="px-6 py-4">
                   <span className={`inline-flex items-center px-2 py-0.5 rounded-full font-bold text-[9px] ${
                     g.turno === 'MATUTINO' ? 'bg-orange-50 text-orange-700 border border-orange-200' :

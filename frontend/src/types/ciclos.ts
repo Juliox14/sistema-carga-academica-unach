@@ -1,3 +1,10 @@
+export interface CicloEstadoUnidad {
+  unidad_academica_id: number;
+  unidad_academica_nombre: string;
+  activo: boolean;
+  carga_finalizada: boolean;
+}
+
 export interface CicloEscolar {
   id?: number;
   nombre: string;
@@ -6,5 +13,5 @@ export interface CicloEscolar {
   anio: number;
   activo: boolean;
   carga_finalizada?: boolean;
+  estados_unidades?: CicloEstadoUnidad[];
 }
-

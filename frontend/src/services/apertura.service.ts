@@ -3,6 +3,7 @@ import api from './api';
 export interface GrupoSugerido {
   grupo: string;
   turno: string;
+  es_especial?: boolean;
 }
 
 export interface PeriodoSugerido {
@@ -18,6 +19,7 @@ export interface GrupoAperturaInput {
   numero_periodo: number;
   grupo: string;
   turno: string;
+  es_especial?: boolean;
 }
 
 export interface GrupoAbiertoResponse {
@@ -29,6 +31,7 @@ export interface GrupoAbiertoResponse {
   numero_periodo: number;
   grupo: string;
   turno: string;
+  es_especial: boolean;
 }
 
 export const aperturaService = {

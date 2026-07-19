@@ -47,7 +47,7 @@ export default function CicloFormSlideOver({ isOpen, ciclo, onClose, onSuccess }
       mes_inicio: Number(formData.get('mes_inicio')),
       mes_final: Number(formData.get('mes_final')),
       anio: Number(formData.get('anio')),
-      activo: formData.get('activo') === 'true',
+      activo: true, // Legacy, ya no se usa globalmente sino por unidad
     };
 
     try {
@@ -120,15 +120,6 @@ export default function CicloFormSlideOver({ isOpen, ciclo, onClose, onSuccess }
                 max="2100"
                 defaultValue={ciclo ? String(ciclo.anio) : String(currentYear)} 
                 required 
-              />
-              <FlatSelect 
-                name="activo" 
-                label="Estado del Ciclo" 
-                defaultValue={ciclo ? (ciclo.activo ? 'true' : 'false') : 'true'} 
-                options={[
-                  { value: 'true', label: 'Activo' }, 
-                  { value: 'false', label: 'Histórico' }
-                ]} 
               />
             </div>
           </div>

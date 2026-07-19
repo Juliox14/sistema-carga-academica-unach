@@ -1,6 +1,11 @@
 from pydantic import BaseModel, ConfigDict
-from typing import Optional
+from typing import Optional, List
 
+class CicloEstadoUnidadSchema(BaseModel):
+    unidad_academica_id: int
+    unidad_academica_nombre: str
+    activo: bool
+    carga_finalizada: bool
 
 class CicloEscolarBase(BaseModel):
     nombre: str
@@ -22,4 +27,5 @@ class CicloEscolarUpdate(BaseModel):
 
 class CicloEscolarResponse(CicloEscolarBase):
     id: int
-    model_config = ConfigDict(from_attributes=True) 
+    estados_unidades: Optional[List[CicloEstadoUnidadSchema]] = None
+    model_config = ConfigDict(from_attributes=True)

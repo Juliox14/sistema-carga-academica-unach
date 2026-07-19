@@ -25,5 +25,13 @@ export const ciclosService = {
   desfinalizarCarga: async () => {
     const response = await api.post<CicloEscolar>('/ciclos/desfinalizar-carga');
     return response.data;
+  },
+  activar: async (id: number, unidad_academica_id?: number) => {
+    const response = await api.post<any>(`/ciclos/${id}/activar`, { unidad_academica_id });
+    return response.data;
+  },
+  cerrar: async (id: number, unidad_academica_id?: number) => {
+    const response = await api.post<any>(`/ciclos/${id}/cerrar`, { unidad_academica_id });
+    return response.data;
   }
 };

@@ -115,30 +115,51 @@ export default function AperturaDashboard({ userRole = 'SECRETARIA_ACADEMICA' })
             const periodos = sugerenciasData.map(p => p.numero_periodo).sort((a, b) => a - b);
             setPeriodosDisponibles(periodos);
 
+            // Detectar cuáles periodos requieren un grupo especial (tienen sugerencias de grupo especial)
+            const periodosEspecialesRequeridos = sugerenciasData
+                .filter(p => p.sugerencias.some(s => s.es_especial))
+                .map(p => p.numero_periodo);
+
+            let listaFinal: GrupoAperturaInput[] = [];
+
             if (existentesParaPlan.length > 0) {
                 // Si ya existen grupos abiertos para este plan en el ciclo actual,
                 // cargamos los grupos existentes como el estado de configuración.
-                const listaExistente = existentesParaPlan.map(g => ({
+                listaFinal = existentesParaPlan.map(g => ({
                     numero_periodo: g.numero_periodo,
                     grupo: g.grupo,
-                    turno: g.turno
+                    turno: g.turno,
+                    es_especial: g.es_especial
                 }));
-                setGruposConfig(listaExistente);
                 toast.success("Se cargaron los grupos abiertos previamente para este plan.");
             } else {
                 // Si no hay grupos abiertos, cargamos la sugerencia por defecto
-                const listaInicial: GrupoAperturaInput[] = [];
                 sugerenciasData.forEach(p => {
                     p.sugerencias.forEach(s => {
-                        listaInicial.push({
+                        listaFinal.push({
                             numero_periodo: p.numero_periodo,
                             grupo: s.grupo,
-                            turno: s.turno
+                            turno: s.turno,
+                            es_especial: s.es_especial
                         });
                     });
                 });
-                setGruposConfig(listaInicial);
             }
+
+            // Asegurar que si un periodo requiere materias especiales, contenga al menos un grupo especial
+            periodosEspecialesRequeridos.forEach(pNum => {
+                const tieneEspecial = listaFinal.some(g => g.numero_periodo === pNum && g.es_especial);
+                if (!tieneEspecial) {
+                    listaFinal.push({
+                        numero_periodo: pNum,
+                        grupo: "U",
+                        turno: "MIXTO",
+                        es_especial: true
+                    });
+                }
+            });
+
+            setGruposConfig(listaFinal);
         } catch (error) {
             console.error("Error al obtener sugerencias o grupos abiertos:", error);
             toast.error("No se pudieron cargar los datos de apertura.");
@@ -175,7 +196,8 @@ export default function AperturaDashboard({ userRole = 'SECRETARIA_ACADEMICA' })
             {
                 numero_periodo: periodo,
                 grupo: nuevaLetra,
-                turno: 'MATUTINO'
+                turno: 'MATUTINO',
+                es_especial: false
             }
         ]);
         toast.success(`Grupo "${nuevaLetra}" agregado al Periodo ${periodo}`);
@@ -204,6 +226,8 @@ export default function AperturaDashboard({ userRole = 'SECRETARIA_ACADEMICA' })
             return next;
         });
     };
+
+
 
     const handleGenerarApertura = async () => {
         if (!selectedPlanId || !cicloActual) return;
