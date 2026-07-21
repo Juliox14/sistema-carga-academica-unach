@@ -1,10 +1,12 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 from typing import List
 
+from src.application.ports.output.logger_port import LoggerPort
 from src.infrastructure.database.database import get_db
 from src.infrastructure.api.schemas.actividades_schema import OtraActividadCreate, OtraActividadResponse, OtraActividadUpdate
 from src.application.use_cases import actividades_service
+from src.infrastructure.api.routers.logging_utils import get_logger, get_trace_id
 
 router = APIRouter(prefix="/api/otras-actividades", tags=["Otras Actividades"])
 
