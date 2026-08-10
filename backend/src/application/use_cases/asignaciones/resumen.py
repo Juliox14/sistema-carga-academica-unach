@@ -3,7 +3,7 @@ from sqlalchemy import or_
 from src.infrastructure.database.orm_models import Docente, CategoriaDocente, AsignacionCarga, AsignacionOtraActividad
 from src.application.use_cases.ciclos_service import obtener_ciclo_activo
 
-def obtener_resumen_carga_docentes(db: Session):
+def obtener_resumen_carga_docentes(db: Session, unidad_id: int | None = None):
     try:
         ciclo = obtener_ciclo_activo(db)
     except Exception:
@@ -16,9 +16,14 @@ def obtener_resumen_carga_docentes(db: Session):
     categorias = db.query(CategoriaDocente).all()
     mapa_categorias = {cat.id: {"nombre": cat.nombre, "siglas": cat.siglas, "hsm_base": cat.hsm_base} for cat in categorias}
 
-    from src.infrastructure.database.orm_models import EstatusDocente
+    from src.infrastructure.database.orm_models import EstatusDocente, DocenteUnidad
     # Obtener docentes activos (que tienen estatus que permite carga)
-    docentes_activos = db.query(Docente).join(EstatusDocente).filter(EstatusDocente.permite_carga == True).all()
+    q_docentes = db.query(Docente).join(EstatusDocente).filter(EstatusDocente.permite_carga == True)
+    if unidad_id is not None:
+        q_docentes = q_docentes.join(DocenteUnidad, DocenteUnidad.docente_id == Docente.id).filter(
+            DocenteUnidad.unidad_academica_id == unidad_id
+        )
+    docentes_activos = q_docentes.all()
     if not docentes_activos:
         return {
             "cobertura": [],
@@ -136,8 +141,8 @@ def obtener_resumen_carga_docentes(db: Session):
         "docentes_incompletos": docentes_incompletos
     }
 
-def obtener_vacantes_ciclo_activo(db: Session):
-    from src.infrastructure.database.orm_models import AsignacionCarga, EstadoAsignacion, Materia, GrupoAbierto, EstatusMateria
+def obtener_vacantes_ciclo_activo(db: Session, unidad_id: int | None = None):
+    from src.infrastructure.database.orm_models import AsignacionCarga, EstadoAsignacion, Materia, GrupoAbierto, EstatusMateria, PlanEstudios, ProgramaEducativo
     from sqlalchemy import and_
     
     try:
@@ -146,10 +151,16 @@ def obtener_vacantes_ciclo_activo(db: Session):
         return []
         
     if ciclo.carga_finalizada:
-        vacantes = db.query(AsignacionCarga).filter(
+        q_vacantes = db.query(AsignacionCarga).filter(
             AsignacionCarga.ciclo_escolar_id == ciclo.id,
             AsignacionCarga.estado_asignacion == EstadoAsignacion.VACANTE
-        ).all()
+        )
+        if unidad_id is not None:
+            q_vacantes = q_vacantes.join(Materia, AsignacionCarga.materia_id == Materia.id)\
+                                   .join(PlanEstudios, Materia.plan_estudios_id == PlanEstudios.id)\
+                                   .join(ProgramaEducativo, PlanEstudios.programa_educativo_id == ProgramaEducativo.id)\
+                                   .filter(ProgramaEducativo.unidad_academica_id == unidad_id)
+        vacantes = q_vacantes.all()
         
         res = []
         for v in vacantes:
@@ -190,6 +201,11 @@ def obtener_vacantes_ciclo_activo(db: Session):
             Materia.estatus == EstatusMateria.ACTIVA,
             asignadas_subq.c.materia_id.is_(None)
         )
+        
+        if unidad_id is not None:
+            query = query.join(PlanEstudios, Materia.plan_estudios_id == PlanEstudios.id)\
+                         .join(ProgramaEducativo, PlanEstudios.programa_educativo_id == ProgramaEducativo.id)\
+                         .filter(ProgramaEducativo.unidad_academica_id == unidad_id)
         
         unassigned_pairs = query.all()
         

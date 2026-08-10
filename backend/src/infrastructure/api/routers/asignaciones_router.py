@@ -13,21 +13,30 @@ from src.infrastructure.database.orm_models import Usuario
 
 router = APIRouter(prefix="/api/asignaciones", tags=["Asignaciones Académicas"])
 
+def _unidad_filtro(current_user: Usuario) -> int | None:
+    if current_user.rol and current_user.rol.clave == "SUPER_ADMIN":
+        return None
+    return current_user.unidad_academica_id
+
 # 1. CATÁLOGOS Y BÚSQUEDAS
 
 @router.get("/catalogos-base")
-def obtener_catalogos_base(db: Session = Depends(get_db)):
+def obtener_catalogos_base(
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(get_current_user)
+):
     """Obtiene los planes de estudio, categorías y actividades para los selects del frontend."""
-    return asignaciones.obtener_catalogos_base(db)
+    return asignaciones.obtener_catalogos_base(db, unidad_id=_unidad_filtro(current_user))
 
 @router.get("/docentes")
 def buscar_docentes(
     categoria_id: Optional[int] = Query(None, description="Filtrar por ID de categoría"),
     query: Optional[str] = Query(None, description="Buscar por nombre o apellidos"),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(get_current_user)
 ):
     """Buscador de docentes en tiempo real para el combobox superior."""
-    return asignaciones.buscar_docentes(db, categoria_id=categoria_id, query=query)
+    return asignaciones.buscar_docentes(db, categoria_id=categoria_id, query=query, unidad_id=_unidad_filtro(current_user))
 
 # 2. TABLERO Y MATERIAS DISPONIBLES
 
@@ -98,16 +107,22 @@ def obtener_materias_sugeridas(
 
 # 7. RESUMEN GLOBAL DE CARGA ACADÉMICA
 @router.get("/resumen-carga", response_model=ResumenCargaResponse)
-def obtener_resumen_carga(db: Session = Depends(get_db)):
+def obtener_resumen_carga(
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(get_current_user)
+):
     """Obtiene el resumen global de cobertura y docentes con cargas incompletas/alertas."""
-    return asignaciones.obtener_resumen_carga_docentes(db)
+    return asignaciones.obtener_resumen_carga_docentes(db, unidad_id=_unidad_filtro(current_user))
 
 
 # 8. VACANTES DISPONIBLES DE LA CARGA ACADÉMICA
 @router.get("/vacantes", response_model=List[VacanteDTO])
-def obtener_vacantes(db: Session = Depends(get_db)):
+def obtener_vacantes(
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(get_current_user)
+):
     """Obtiene la lista de vacantes disponibles generadas tras finalizar la carga académica."""
-    return asignaciones.obtener_vacantes_ciclo_activo(db)
+    return asignaciones.obtener_vacantes_ciclo_activo(db, unidad_id=_unidad_filtro(current_user))
 
 # 9. REPORTE OFICIAL DE CARGA ACADÉMICA
 from fastapi.responses import HTMLResponse

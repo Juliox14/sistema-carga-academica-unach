@@ -1,9 +1,9 @@
 from sqlalchemy.orm import Session
 from sqlalchemy import or_, and_
-from src.infrastructure.database.orm_models import Docente, PlanEstudios, OtraActividad, CategoriaDocente, EstatusDocente
+from src.infrastructure.database.orm_models import Docente, PlanEstudios, OtraActividad, CategoriaDocente, EstatusDocente, DocenteUnidad, ProgramaEducativo
 
-def buscar_docentes(db: Session, categoria_id: int | None = None, query: str | None = None):
-    """Devuelve la lista de docentes activos, filtrable por categoría y nombre."""
+def buscar_docentes(db: Session, categoria_id: int | None = None, query: str | None = None, unidad_id: int | None = None):
+    """Devuelve la lista de docentes activos, filtrable por categoría, nombre y unidad académica."""
     filtros = [EstatusDocente.permite_carga == True]
     
     if categoria_id:
@@ -16,7 +16,13 @@ def buscar_docentes(db: Session, categoria_id: int | None = None, query: str | N
             Docente.apellidos.ilike(search_term)
         ))
         
-    docentes = db.query(Docente).join(EstatusDocente).filter(and_(*filtros)).order_by(EstatusDocente.es_prioritario.desc(), Docente.apellidos, Docente.nombre).all()
+    q = db.query(Docente).join(EstatusDocente)
+    if unidad_id is not None:
+        q = q.join(DocenteUnidad, DocenteUnidad.docente_id == Docente.id).filter(
+            DocenteUnidad.unidad_academica_id == unidad_id
+        )
+        
+    docentes = q.filter(and_(*filtros)).order_by(EstatusDocente.es_prioritario.desc(), Docente.apellidos, Docente.nombre).all()
     
     return [
         {
@@ -29,9 +35,15 @@ def buscar_docentes(db: Session, categoria_id: int | None = None, query: str | N
         for d in docentes
     ]
 
-def obtener_catalogos_base(db: Session):
-    """Devuelve los catálogos necesarios para los selectores del frontend."""
-    planes = db.query(PlanEstudios).filter(PlanEstudios.vigente == True).all()
+def obtener_catalogos_base(db: Session, unidad_id: int | None = None):
+    """Devuelve los catálogos necesarios para los selectores del frontend, filtrando por unidad académica."""
+    q_planes = db.query(PlanEstudios).filter(PlanEstudios.vigente == True)
+    if unidad_id is not None:
+        q_planes = q_planes.join(ProgramaEducativo, PlanEstudios.programa_educativo_id == ProgramaEducativo.id).filter(
+            ProgramaEducativo.unidad_academica_id == unidad_id
+        )
+        
+    planes = q_planes.all()
     actividades = db.query(OtraActividad).all()
     categorias = db.query(CategoriaDocente).all()
     
