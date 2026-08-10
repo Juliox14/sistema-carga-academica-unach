@@ -40,6 +40,11 @@ class EstadoOficio(enum.Enum):
     FIRMADO = "FIRMADO"
     RECHAZADO = "RECHAZADO"
 
+class EstadoInvitacion(enum.Enum):
+    PENDIENTE = "PENDIENTE"
+    ACEPTADA = "ACEPTADA"
+    RECHAZADA = "RECHAZADA"
+
 
 
 docentes_areas_conocimiento = Table(
@@ -78,14 +83,34 @@ class DocenteUnidad(Base):
     unidad_academica_id = Column(BigInteger, ForeignKey('unidades_academicas.id', ondelete='CASCADE'), nullable=False)
     es_unidad_principal: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     horas_obligatorias: Mapped[float] = mapped_column(Float, nullable=True)
-
-    __table_args__ = (
-        UniqueConstraint('docente_id', 'unidad_academica_id', name='uq_docente_unidad'),
-    )
+    ciclo_escolar_id = Column(BigInteger, ForeignKey('ciclos_escolares.id', ondelete='CASCADE'), nullable=True)
 
     # Relaciones
     docente = relationship("Docente", back_populates="unidades")
     unidad_academica = relationship("UnidadAcademica", back_populates="docentes_vinculados")
+    ciclo_escolar = relationship("CicloEscolar")
+
+
+class InvitacionDocenteUnidad(Base):
+    """Solicitud/invitación enviada desde la unidad principal hacia una unidad secundaria para permitirle al docente impartir horas en un ciclo determinado."""
+    __tablename__ = 'invitaciones_docente_unidad'
+
+    id = Column(BigInteger, primary_key=True, autoincrement=True)
+    docente_id = Column(BigInteger, ForeignKey('docentes.id', ondelete='CASCADE'), nullable=False)
+    unidad_origen_id = Column(BigInteger, ForeignKey('unidades_academicas.id', ondelete='CASCADE'), nullable=False)
+    unidad_destino_id = Column(BigInteger, ForeignKey('unidades_academicas.id', ondelete='CASCADE'), nullable=False)
+    ciclo_escolar_id = Column(BigInteger, ForeignKey('ciclos_escolares.id', ondelete='CASCADE'), nullable=False)
+    horas_propuestas: Mapped[float] = mapped_column(Float, default=0.0, nullable=False)
+    estado = Column(SQLEnum(EstadoInvitacion), default=EstadoInvitacion.PENDIENTE, nullable=False)
+    mensaje = Column(String(300), nullable=True)
+    respuesta = Column(String(300), nullable=True)
+    created_at = Column(DateTime, nullable=True)
+
+    # Relaciones
+    docente = relationship("Docente")
+    unidad_origen = relationship("UnidadAcademica", foreign_keys=[unidad_origen_id])
+    unidad_destino = relationship("UnidadAcademica", foreign_keys=[unidad_destino_id])
+    ciclo_escolar = relationship("CicloEscolar")
 
 
 class CicloEscolarUnidad(Base):
@@ -364,7 +389,7 @@ class PlantillaOficio(Base):
 
     id: Mapped[BigInteger] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
     nombre: Mapped[str] = mapped_column(String(100), nullable=False)
-    tipo_contrato: Mapped[TipoContratoOficio] = mapped_column(SQLEnum(TipoContratoOficio), nullable=False)
+    tipos_contrato: Mapped[str] = mapped_column(String(255), nullable=False, default="")
     contenido_html: Mapped[str] = mapped_column(Text, nullable=False)
     requiere_firma: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     es_activa: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
