@@ -65,6 +65,10 @@ export const horariosService = {
   obtenerResumenProgramacion: async (): Promise<ResumenHorariosGlobalResponse> => {
     const response = await api.get<ResumenHorariosGlobalResponse>('/horarios/resumen-programacion');
     return response.data;
+  },
+  obtenerMiHorario: async (): Promise<MiHorarioResponse> => {
+    const response = await api.get<MiHorarioResponse>('/horarios/docente/me');
+    return response.data;
   }
 };
 
@@ -88,4 +92,36 @@ export interface ResumenHorariosGlobalResponse {
   total_hsm: number;
   total_programadas: number;
   grupos: ResumenHorariosGrupo[];
+}
+
+export interface MiHorarioDia {
+  L: string;
+  M: string;
+  X: string;
+  J: string;
+  V: string;
+  S: string;
+  D: string;
+}
+
+export interface MiHorarioMateria {
+  programa_educativo: string;
+  unidad_competencia: string;
+  periodo: string;
+  grupo: string;
+  horario_dias: MiHorarioDia;
+  hsm: number;
+}
+
+export interface MiHorarioActividad {
+  actividad: string;
+  observaciones: string;
+  horas: number;
+}
+
+export interface MiHorarioResponse {
+  materias: MiHorarioMateria[];
+  otras_actividades: MiHorarioActividad[];
+  total_hsm: number;
+  total_horas_actividades: number;
 }

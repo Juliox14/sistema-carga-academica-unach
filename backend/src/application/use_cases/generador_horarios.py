@@ -60,7 +60,7 @@ def extraer_datos_grupo_para_z3(db: Session, grupo_id: int):
             
             preferencias_dict[doc_key].append({
                 "dia_semana": pref.dia_semana.name,
-                "tipo": pref.tipo_preferncia.name,  # BLOQUEO, PREFERENCIA, etc
+                "tipo": pref.tipo_preferencia.name,  # BLOQUEO, PREFERENCIA, etc
                 "horas_bloqueadas": pref.horas_bloqueadas
             })
 

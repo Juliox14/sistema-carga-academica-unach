@@ -1,10 +1,10 @@
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, field_validator
 from typing import Optional, List
 from datetime import datetime
 
 class PlantillaOficioCreate(BaseModel):
     nombre: str
-    tipo_contrato: str  # PTC, PMT, PAS, PAT, PAE
+    tipos_contrato: List[str]  # Lista de PTC, PMT, PAS, PAT, PAE, HONORARIOS
     contenido_html: Optional[str] = ""
     requiere_firma: bool
     lugar_emision: Optional[str] = ""
@@ -19,7 +19,7 @@ class PlantillaOficioCreate(BaseModel):
 class PlantillaOficioResponse(BaseModel):
     id: int
     nombre: str
-    tipo_contrato: str
+    tipos_contrato: List[str]
     contenido_html: str
     requiere_firma: bool
     es_activa: bool
@@ -31,6 +31,13 @@ class PlantillaOficioResponse(BaseModel):
     remitente_nombre: Optional[str] = ""
     remitente_cargo: Optional[str] = ""
     con_copia_para: Optional[str] = ""
+
+    @field_validator('tipos_contrato', mode='before')
+    @classmethod
+    def _parse_tipos_contrato(cls, v):
+        if isinstance(v, str):
+            return [t.strip() for t in v.split(",") if t.strip()]
+        return v
 
     model_config = ConfigDict(from_attributes=True)
 

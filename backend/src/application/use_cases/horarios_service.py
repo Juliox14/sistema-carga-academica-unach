@@ -390,3 +390,86 @@ def obtener_resumen_programacion(db: Session, unidad_id: int | None = None):
         "total_programadas": total_programadas_global,
         "grupos": resumen_grupos
     }
+
+def obtener_mi_horario(db: Session, docente_id: int, unidad_id: int | None = None):
+    from sqlalchemy import or_
+    from src.infrastructure.database.orm_models import AsignacionCarga
+    ciclo = obtener_ciclo_activo(db, unidad_id)
+    if not ciclo:
+        raise ValueError("No hay un ciclo activo.")
+        
+    asignaciones = db.query(AsignacionCarga).filter(
+        or_(AsignacionCarga.docente_titular_id == docente_id, AsignacionCarga.docente_temporal_id == docente_id),
+        AsignacionCarga.ciclo_escolar_id == ciclo.id
+    ).all()
+    
+    materias_res = []
+    total_hsm_global = 0.0
+    
+    for a in asignaciones:
+        if not a.materia or not a.grupo_asignado:
+            continue
+            
+        hsm = a.materia.hsm
+        total_hsm_global += hsm
+        
+        # Agrupar horarios por día
+        dias_dict = {"L": [], "M": [], "X": [], "J": [], "V": [], "S": [], "D": []}
+        for h in a.horarios:
+            mapa_dias = {
+                "LUNES": "L",
+                "MARTES": "M",
+                "MIERCOLES": "X",
+                "JUEVES": "J",
+                "VIERNES": "V",
+                "SABADO": "S",
+                "DOMINGO": "D"
+            }
+            letra_dia = mapa_dias.get(h.dia_semana.name, "")
+            if letra_dia:
+                str_horario = f"{h.hora_inicio}:00-{h.hora_fin}:00"
+                dias_dict[letra_dia].append(str_horario)
+                
+        # Unir strings por día
+        horario_dias = {
+            "L": "\n".join(dias_dict["L"]),
+            "M": "\n".join(dias_dict["M"]),
+            "X": "\n".join(dias_dict["X"]),
+            "J": "\n".join(dias_dict["J"]),
+            "V": "\n".join(dias_dict["V"]),
+            "S": "\n".join(dias_dict["S"]),
+            "D": "\n".join(dias_dict["D"])
+        }
+        
+        materias_res.append({
+            "programa_educativo": a.materia.plan_estudio.programa_educativo.clave if a.materia.plan_estudio and a.materia.plan_estudio.programa_educativo else "N/A",
+            "unidad_competencia": a.materia.nombre_asignatura,
+            "periodo": str(a.materia.numero_periodo) if a.materia.numero_periodo else "-",
+            "grupo": str(a.grupo_asignado.grupo) if a.grupo_asignado else "-",
+            "horario_dias": horario_dias,
+            "hsm": float(hsm)
+        })
+        
+    from src.infrastructure.database.orm_models import AsignacionOtraActividad
+    actividades_asignadas = db.query(AsignacionOtraActividad).filter(
+        AsignacionOtraActividad.docente_id == docente_id,
+        AsignacionOtraActividad.ciclo_escolar_id == ciclo.id
+    ).all()
+    
+    actividades_res = []
+    total_horas_actividades = 0.0
+    for act in actividades_asignadas:
+        if not act.actividad: continue
+        actividades_res.append({
+            "actividad": act.actividad.nombre,
+            "observaciones": act.observaciones or "",
+            "horas": float(act.horas_asignadas)
+        })
+        total_horas_actividades += act.horas_asignadas
+        
+    return {
+        "materias": materias_res,
+        "otras_actividades": actividades_res,
+        "total_hsm": total_hsm_global,
+        "total_horas_actividades": total_horas_actividades
+    }

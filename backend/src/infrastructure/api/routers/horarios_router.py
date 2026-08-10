@@ -155,3 +155,20 @@ def obtener_resumen_programacion(db: Session = Depends(get_db), current_user: Us
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+from src.infrastructure.api.schemas.horarios_schema import MiHorarioResponse
+
+@router.get("/docente/me", response_model=MiHorarioResponse, dependencies=[Depends(require_roles(["DOCENTE"]))])
+def obtener_mi_horario_endpoint(db: Session = Depends(get_db), current_user: Usuario = Depends(get_current_user)):
+    try:
+        if not current_user.docente:
+            raise HTTPException(status_code=400, detail="El usuario actual no tiene un docente vinculado.")
+            
+        unidad_id = current_user.unidad_academica_id
+        return horarios_service.obtener_mi_horario(db, current_user.docente.id, unidad_id)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))

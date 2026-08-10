@@ -174,7 +174,7 @@ def crear_plantilla(db: Session, data: PlantillaOficioCreate, unidad_id: int | N
     compilado = compilar_oficio_html(data)
     nueva = PlantillaOficio(
         nombre=data.nombre,
-        tipo_contrato=TipoContratoOficio[data.tipo_contrato],
+        tipos_contrato=",".join(data.tipos_contrato),
         contenido_html=compilado,
         requiere_firma=data.requiere_firma,
         es_activa=False,
@@ -194,17 +194,24 @@ def crear_plantilla(db: Session, data: PlantillaOficioCreate, unidad_id: int | N
     return nueva
 
 def activar_plantilla(db: Session, plantilla_id: int) -> PlantillaOficio:
-    """Activa una plantilla y desactiva todas las demás del mismo tipo de contrato."""
+    """Activa una plantilla y desactiva todas las demás que tengan algún tipo de contrato en común."""
     plantilla = db.query(PlantillaOficio).filter(PlantillaOficio.id == plantilla_id).first()
     if not plantilla:
         raise ValueError("La plantilla no existe")
     
-    # Deactivate other active templates for this contract type
-    db.query(PlantillaOficio).filter(
-        PlantillaOficio.tipo_contrato == plantilla.tipo_contrato,
-        PlantillaOficio.id != plantilla_id
-    ).update({"es_activa": False})
+    # Desactivar otras plantillas activas que colisionen en algún tipo de contrato
+    tipos_esta_plantilla = set(plantilla.tipos_contrato.split(',')) if plantilla.tipos_contrato else set()
     
+    plantillas_activas = db.query(PlantillaOficio).filter(
+        PlantillaOficio.es_activa == True,
+        PlantillaOficio.id != plantilla_id
+    ).all()
+    
+    for pa in plantillas_activas:
+        tipos_pa = set(pa.tipos_contrato.split(',')) if pa.tipos_contrato else set()
+        if tipos_esta_plantilla.intersection(tipos_pa):
+            pa.es_activa = False
+            
     plantilla.es_activa = True
     db.commit()
     db.refresh(plantilla)
@@ -219,7 +226,7 @@ def actualizar_plantilla(db: Session, plantilla_id: int, data: PlantillaOficioCr
     compilado = compilar_oficio_html(data)
     
     plantilla.nombre = data.nombre
-    plantilla.tipo_contrato = TipoContratoOficio[data.tipo_contrato]
+    plantilla.tipos_contrato = ",".join(data.tipos_contrato)
     plantilla.contenido_html = compilado
     plantilla.requiere_firma = data.requiere_firma
     plantilla.lugar_emision = data.lugar_emision
@@ -321,7 +328,11 @@ def emitir_oficios_ciclo(
     
     # Fetch active templates
     plantillas_activas = db.query(PlantillaOficio).filter(PlantillaOficio.es_activa == True).all()
-    mapa_plantillas = {p.tipo_contrato.value: p for p in plantillas_activas}
+    mapa_plantillas = {}
+    for p in plantillas_activas:
+        if p.tipos_contrato:
+            for tc in p.tipos_contrato.split(','):
+                mapa_plantillas[tc] = p
 
     total_emitidos = 0
     anio_corto = str(ciclo.anio)[2:]
@@ -415,7 +426,7 @@ def obtener_oficios_emitidos(db: Session, ciclo_id: int, unidad_id: int | None =
         o.ciclo_nombre = o.ciclo_escolar.nombre if o.ciclo_escolar else "N/A"
         o.plantilla_nombre = o.plantilla.nombre if o.plantilla else "N/A"
         o.requiere_firma = o.plantilla.requiere_firma if o.plantilla else False
-        o.tipo_contrato = o.plantilla.tipo_contrato.value if o.plantilla and o.plantilla.tipo_contrato else None
+        o.tipo_contrato = o.docente.categoria.siglas if o.docente and o.docente.categoria else None
     return oficios
 
 def _populate_oficio_response(db: Session, oficio: OficioDocente, docente: Docente, ciclo: CicloEscolar):
@@ -424,7 +435,7 @@ def _populate_oficio_response(db: Session, oficio: OficioDocente, docente: Docen
     oficio.ciclo_nombre = ciclo.nombre
     oficio.plantilla_nombre = oficio.plantilla.nombre if oficio.plantilla else "N/A"
     oficio.requiere_firma = oficio.plantilla.requiere_firma if oficio.plantilla else False
-    oficio.tipo_contrato = oficio.plantilla.tipo_contrato.value if oficio.plantilla and oficio.plantilla.tipo_contrato else None
+    oficio.tipo_contrato = docente.categoria.siglas if docente.categoria else None
 
     # Interpolate HTML content dynamically
     if oficio.plantilla:

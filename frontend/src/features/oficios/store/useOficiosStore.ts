@@ -4,7 +4,7 @@ import api from '../../../services/api';
 export interface Plantilla {
   id: number;
   nombre: string;
-  tipo_contrato: string;
+  tipos_contrato: string[];
   contenido_html: string;
   requiere_firma: boolean;
   es_activa: boolean;
@@ -93,18 +93,7 @@ export const useOficiosStore = create<OficiosState>((set, get) => ({
     set({ isLoading: true });
     try {
       const response = await api.put(`/oficios/plantillas/${id}/activar`);
-      const updated = response.data;
-      
-      set((state) => ({
-        plantillas: state.plantillas.map((p) => {
-          if (p.id === id) return updated;
-          if (p.tipo_contrato === updated.tipo_contrato) {
-            return { ...p, es_activa: false };
-          }
-          return p;
-        }),
-        isLoading: false
-      }));
+      await get().fetchPlantillas();
     } catch (error) {
       set({ isLoading: false });
       throw error;

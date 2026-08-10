@@ -65,3 +65,31 @@ class ResumenHorariosGlobalResponse(BaseModel):
     total_hsm: int
     total_programadas: int
     grupos: List[ResumenHorariosGrupoResponse]
+
+class MiHorarioDia(BaseModel):
+    L: str = ""
+    M: str = ""
+    X: str = ""
+    J: str = ""
+    V: str = ""
+    S: str = ""
+    D: str = ""
+
+class MiHorarioMateriaResponse(BaseModel):
+    programa_educativo: str
+    unidad_competencia: str
+    periodo: str
+    grupo: str
+    horario_dias: MiHorarioDia
+    hsm: float
+
+class MiHorarioActividadResponse(BaseModel):
+    actividad: str
+    observaciones: str
+    horas: float
+
+class MiHorarioResponse(BaseModel):
+    materias: List[MiHorarioMateriaResponse]
+    otras_actividades: List[MiHorarioActividadResponse] = []
+    total_hsm: float
+    total_horas_actividades: float = 0.0

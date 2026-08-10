@@ -40,7 +40,7 @@ export default function PlantillasList({ plantillas, isLoading, onActivar, onEdi
                   <div>
                     <h4 className="text-xs font-bold text-gray-800 line-clamp-1">{p.nombre}</h4>
                     <span className="inline-block px-1.5 py-0.5 rounded-full text-[9px] font-bold bg-blue-50 text-[#002d55] border border-blue-200 mt-1.5">
-                      Contrato: {p.tipo_contrato}
+                      Contratos: {p.tipos_contrato.join(', ')}
                     </span>
                   </div>
                   {p.es_activa ? (

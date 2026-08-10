@@ -27,7 +27,7 @@ export default function PlantillasManager() {
   const [isDeleting, setIsDeleting] = useState(false);
 
   const [nombre, setNombre] = useState('');
-  const [tipoContrato, setTipoContrato] = useState('PTC');
+  const [tiposContrato, setTiposContrato] = useState<string[]>(['PTC']);
   const [requiereFirma, setRequiereFirma] = useState(true);
 
   // Campos estructurados de plantilla
@@ -47,7 +47,7 @@ export default function PlantillasManager() {
   const handleEdit = (plantilla: Plantilla) => {
     setEditingId(plantilla.id);
     setNombre(plantilla.nombre);
-    setTipoContrato(plantilla.tipo_contrato);
+    setTiposContrato(plantilla.tipos_contrato || []);
     setRequiereFirma(plantilla.requiere_firma);
     setLugarEmision(plantilla.lugar_emision || '');
     setAsunto(plantilla.asunto || '');
@@ -73,6 +73,7 @@ export default function PlantillasManager() {
     // Reestablecer a valores default
     setLugarEmision('Tuxtla Gutiérrez, Chiapas');
     setAsunto('ENVÍO DE CARGA PROGRAMADA');
+    setTiposContrato(['PTC']);
     setDespedida('ATENTAMENTE\n"POR LA CONCIENCIA DE LA NECESIDAD DE SERVIR"');
     setRemitenteCargo('ENCARGADA DE SECRETARÍA ACADÉMICA');
   };
@@ -108,6 +109,10 @@ export default function PlantillasManager() {
       toast.error('Por favor, ingresa un nombre para la plantilla.');
       return;
     }
+    if (tiposContrato.length === 0) {
+      toast.error('Debes seleccionar al menos un tipo de contrato.');
+      return;
+    }
     if (!cuerpoHtml) {
       toast.error('El cuerpo del oficio no puede estar vacío.');
       return;
@@ -115,7 +120,7 @@ export default function PlantillasManager() {
 
     const payload = {
       nombre,
-      tipo_contrato: tipoContrato,
+      tipos_contrato: tiposContrato,
       requiere_firma: requiereFirma,
       lugar_emision: lugarEmision,
       asunto: asunto,
@@ -138,6 +143,8 @@ export default function PlantillasManager() {
       }
       
       setNombre('');
+      setTiposContrato(['PTC']);
+      fetchPlantillas();
       setCuerpoHtml('');
       setDestinatarios('');
       setConCopiaPara('');
@@ -183,7 +190,7 @@ export default function PlantillasManager() {
       if (preset.lugar_emision) setLugarEmision(preset.lugar_emision);
       if (preset.asunto) setAsunto(preset.asunto);
       
-      if (tipoContrato === 'PAE') {
+      if (tiposContrato.includes('PAE')) {
         setDestinatarios(preset.destinatarios_pae || '');
       } else {
         setDestinatarios(preset.destinatarios_default || '');
@@ -205,7 +212,7 @@ export default function PlantillasManager() {
   const triggerPreview = () => {
     handlePreview({
       nombre,
-      tipoContrato,
+      tipoContrato: tiposContrato.length > 0 ? tiposContrato[0] : 'PTC',
       lugarEmision,
       asunto,
       destinatarios,
@@ -300,22 +307,30 @@ export default function PlantillasManager() {
                 />
               </div>
 
-              {/* Tipo Contrato */}
+              {/* Tipos Contrato */}
               <div className="space-y-1.5">
                 <label className="text-xs font-bold text-gray-600 block uppercase tracking-wider">
-                  Tipo de Contrato
+                  Tipos de Contrato
                 </label>
-                <select
-                  value={tipoContrato}
-                  onChange={(e) => setTipoContrato(e.target.value)}
-                  className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-[#002d55] focus:bg-white transition-all text-gray-700 cursor-pointer"
-                >
-                  <option value="PTC">PTC (Tiempo Completo)</option>
-                  <option value="PMT">PMT (Medio Tiempo)</option>
-                  <option value="PAS">PAS (Asignatura Base/Sindicalizado)</option>
-                  <option value="PAT">PAT (Asignatura Temporal)</option>
-                  <option value="PAE">PAE (Asignatura Eventual)</option>
-                </select>
+                <div className="grid grid-cols-2 gap-2 mt-1">
+                  {['PTC', 'PMT', 'PAS', 'PAT', 'PAE', 'HONORARIOS'].map((tc) => (
+                    <label key={tc} className="flex items-center gap-2 text-xs font-medium text-gray-700 cursor-pointer p-1.5 bg-gray-50 border border-gray-200 rounded-lg hover:bg-blue-50 transition-colors">
+                      <input 
+                        type="checkbox"
+                        className="accent-[#002d55] w-3.5 h-3.5 cursor-pointer"
+                        checked={tiposContrato.includes(tc)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setTiposContrato([...tiposContrato, tc]);
+                          } else {
+                            setTiposContrato(tiposContrato.filter(t => t !== tc));
+                          }
+                        }}
+                      />
+                      {tc}
+                    </label>
+                  ))}
+                </div>
               </div>
             </div>
 
