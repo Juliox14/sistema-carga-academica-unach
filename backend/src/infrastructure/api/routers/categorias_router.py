@@ -20,6 +20,10 @@ def listar(db: Session = Depends(get_db)):
 def obtener(categoria_id: int, db: Session = Depends(get_db)):
     return categorias_service.obtener_categoria_por_id(db, categoria_id)
 
+@router.put("/bulk-rules")
+def actualizar_reglas_bulk(datos: List[CategoriaBulkRulesUpdate], db: Session = Depends(get_db)):
+    return categorias_service.actualizar_reglas_bulk(db, datos)
+
 @router.put("/{categoria_id}", response_model=CategoriaDocenteResponse)
 def actualizar(categoria_id: int, categoria: CategoriaDocenteUpdate, db: Session =
         Depends(get_db)):
@@ -29,7 +33,3 @@ def actualizar(categoria_id: int, categoria: CategoriaDocenteUpdate, db: Session
 def eliminar(categoria_id: int, db: Session = Depends(get_db)):
     categorias_service.eliminar_categoria(db, categoria_id)
     return {"message": "Categoría docente eliminada exitosamente"}
-
-@router.put("/bulk-rules")
-def actualizar_reglas_bulk(datos: List[CategoriaBulkRulesUpdate], db: Session = Depends(get_db)):
-    return categorias_service.actualizar_reglas_bulk(db, datos)

@@ -20,14 +20,14 @@ def obtener_puntos_balance_carga(hsm_base: float, horas_disponibles: float) -> f
     
     
 
-def obtener_materias_sugeridas(session: Session, docente_id: int, plan_id: int, n_sugerencias: int = 5) -> List[dict]:
+def obtener_materias_sugeridas(session: Session, docente_id: int, plan_id: int, unidad_id: int, n_sugerencias: int = 5) -> List[dict]:
     materias_disponibles = obtener_materias_disponibles(session, plan_id, docente_id)
     docente = session.query(Docente).filter(Docente.id == docente_id).first()
     historial_counts = obtener_mapa_historial_docente(session, docente_id)
     maximos_historicos = obtener_maximos_historicos_batch(session)
     areas_query = session.query(AreaConocimiento.id).filter(AreaConocimiento.docentes.any(id=docente_id)).all()
     areas_docente_ids = {area[0] for area in areas_query}
-    pesos: dict = ConfiguracionService.obtener("PESOS_SUGERENCIAS", {"historial": 35, "area": 25, "turno": 15, "prioridad": 15, "carga": 10}) #type: ignore
+    pesos: dict = ConfiguracionService.obtener("PESOS_SUGERENCIAS", unidad_id, {"historial": 35, "area": 25, "turno": 15, "prioridad": 15, "carga": 10}) #type: ignore
     
     categoria = session.query(CategoriaDocente).filter(CategoriaDocente.id == docente.categoria_id).first() if docente else None
     

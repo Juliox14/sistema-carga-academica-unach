@@ -6,13 +6,13 @@ from src.application.use_cases.ciclos_service import obtener_ciclo_activo
 from .validaciones import _verificar_limite_hsm, _validar_ciclos_consecutivos
 
 
-def vincular_materia_a_docente(db: Session, datos: VincularMateriaRequest):
+def vincular_materia_a_docente(db: Session, datos: VincularMateriaRequest, unidad_id: int | None = None):
     ciclo = obtener_ciclo_activo(db)
     materia = db.query(Materia).get(datos.materia_id)
     
     # Validar límite estricto de horas antes de proceder
     if materia:
-        _verificar_limite_hsm(db, datos.docente_id, materia.hsm)
+        _verificar_limite_hsm(db, datos.docente_id, materia.hsm, unidad_actual_id=unidad_id)
         _validar_ciclos_consecutivos(db, datos.docente_id, datos.materia_id)
 
     asignacion = db.query(AsignacionCarga).filter(

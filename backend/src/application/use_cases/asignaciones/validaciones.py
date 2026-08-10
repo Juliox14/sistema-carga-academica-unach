@@ -89,7 +89,11 @@ def _verificar_limite_hsm(db: Session, docente_id: int, nuevas_horas: int | floa
                 )
 
 def _validar_ciclos_consecutivos(db: Session, docente_id: int, materia_id: int):
-    limite_racha = ConfiguracionService.obtener("MAX_CICLOS_CONSECUTIVOS", 0)
+    from src.infrastructure.database.orm_models import Materia
+    materia = db.query(Materia).filter(Materia.id == materia_id).first()
+    unidad_id = materia.plan_estudio.programa_educativo.unidad_academica_id if materia and materia.plan_estudio and materia.plan_estudio.programa_educativo else None
+    
+    limite_racha = ConfiguracionService.obtener("MAX_CICLOS_CONSECUTIVOS", unidad_id, 0)
     
     if limite_racha == 0:
         return 

@@ -36,9 +36,29 @@ class ConfiguracionService:
     def actualizar(cls, db: Session, clave: str, unidad_academica_id: int, nuevo_valor):
         config = db.query(ConfiguracionSistema).filter_by(clave=clave, unidad_academica_id=unidad_academica_id).first()
         
+        val_str = str(nuevo_valor)
         if config:
-            config.valor = nuevo_valor
-            db.commit()
-            cls.cargar_cache(db)
+            config.valor = val_str
+        else:
+            tipo_dato = 'string'
+            if val_str.lower() in ['true', 'false']:
+                tipo_dato = 'bool'
+            elif val_str.isdigit():
+                tipo_dato = 'int'
+            elif val_str.startswith('{') or val_str.startswith('['):
+                tipo_dato = 'json'
+
+            config = ConfiguracionSistema(
+                clave=clave,
+                unidad_academica_id=unidad_academica_id,
+                modulo="CONFIGURACION",
+                nombre_descriptivo=clave,
+                tipo_dato=tipo_dato,
+                valor=val_str
+            )
+            db.add(config)
+
+        db.commit()
+        cls.cargar_cache(db)
                 
                 

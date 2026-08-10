@@ -59,9 +59,13 @@ def desvincular_materia(asignacion_id: int, db: Session = Depends(get_db)):
 # 4. DESCARGAS
 
 @router.post("/descargar", dependencies=[Depends(require_roles(["SECRETARIA_ACADEMICA"]))])
-def asignar_descarga(datos: AsignarDescargaRequest, db: Session = Depends(get_db)):
+def asignar_descarga(
+    datos: AsignarDescargaRequest, 
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(get_current_user)
+):
     """Pasa una materia de 'Carga Asignada' a 'Descargas'."""
-    return asignaciones.asignar_descarga(db, datos)
+    return asignaciones.asignar_descarga(db, datos, current_user.unidad_academica_id)
 
 @router.delete("/remover-descarga/{asignacion_id}", dependencies=[Depends(require_roles(["SECRETARIA_ACADEMICA"]))])
 def remover_descarga(asignacion_id: int, db: Session = Depends(get_db)):
@@ -87,8 +91,9 @@ def obtener_materias_sugeridas(
     plan_id: int = Query(..., description="ID del plan de estudios seleccionado"),
     docente_id: int = Query(..., description="ID del docente actual"),
     db: Session = Depends(get_db),
+    current_user: Usuario = Depends(get_current_user),
 ):
-    return asignaciones.obtener_materias_sugeridas(db, docente_id, plan_id, n_sugerencias=5)
+    return asignaciones.obtener_materias_sugeridas(db, docente_id, plan_id, current_user.unidad_academica_id, n_sugerencias=5)
 
 
 # 7. RESUMEN GLOBAL DE CARGA ACADÉMICA
