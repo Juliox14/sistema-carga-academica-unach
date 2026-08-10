@@ -8,6 +8,8 @@ from src.infrastructure.api.schemas.unidades_schema import UnidadAcademicaRespon
 class DocenteUnidadResponse(BaseModel):
     unidad_academica: UnidadAcademicaResponse
     es_unidad_principal: bool
+    horas_obligatorias: Optional[float] = None
+    ciclo_escolar_id: Optional[int] = None
     model_config = ConfigDict(from_attributes=True)
 
 class AreaConocimientoResponse(BaseModel):
@@ -38,6 +40,7 @@ class DocenteCreate(DocenteBase):
     areas_conocimiento_ids: List[int] = []
     horas_obligatorias: Optional[float] = None
     es_unidad_principal: bool = True
+    unidad_academica_id: Optional[int] = None
     
 class DocenteUpdate(BaseModel):
     nombre: Optional[str] = None

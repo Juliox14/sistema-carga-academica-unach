@@ -84,7 +84,7 @@ export default function UsuariosDashboard() {
         password, 
         selectedRole, 
         selectedRole === 'DOCENTE' ? selectedDocenteId : null,
-        selectedUnidadId,
+        (selectedRole === 'SUPER_ADMIN' || selectedRole === 'DOCENTE') ? null : selectedUnidadId,
         selectedRole !== 'DOCENTE' ? (nombreForm || null) : null
       );
       toast.success('Usuario registrado exitosamente.');
@@ -280,6 +280,8 @@ export default function UsuariosDashboard() {
                           <span className="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-bold bg-[#002d55]/5 text-[#002d55] border border-[#002d55]/10">
                             {usuario.unidad_academica_clave}
                           </span>
+                        ) : usuario.rol_clave === 'DOCENTE' ? (
+                          <span className="text-xs text-gray-400 font-semibold italic">—</span>
                         ) : (
                           <span className="text-xs text-gray-400 font-semibold italic">GLOBAL</span>
                         )}
@@ -435,8 +437,8 @@ export default function UsuariosDashboard() {
                 </div>
               )}
 
-              {/* Unidad Académica (Opcional, para SECRETARIA_ACADEMICA o CAPTURISTA) */}
-              {currentUser?.rol === 'SUPER_ADMIN' && selectedRole !== 'SUPER_ADMIN' && (
+              {/* Unidad Académica (Para SECRETARIA_ACADEMICA o CAPTURISTA) */}
+              {currentUser?.rol === 'SUPER_ADMIN' && selectedRole !== 'SUPER_ADMIN' && selectedRole !== 'DOCENTE' && (
                 <div className="space-y-1.5 mt-4">
                   <label className="text-xs font-bold text-gray-600 uppercase tracking-wide block">
                     Unidad Académica (Opcional)

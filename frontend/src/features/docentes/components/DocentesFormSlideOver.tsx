@@ -8,6 +8,9 @@ import type { Docente } from '../../../types/docentes';
 import type { EstatusDocente } from '../../../types/estatus';
 import type { AreaConocimiento } from '../../../types/areas';
 
+import { useAuthStore } from '../../auth/store/useAuthStore';
+import { unidadesService, type UnidadAcademica } from '../../../services/unidades.service';
+
 interface DocenteFormProps {
   isOpen: boolean;
   docente: Docente | null;
@@ -18,6 +21,9 @@ interface DocenteFormProps {
 }
 
 export default function DocenteFormSlideOver({ isOpen, docente, categoriasOptions, areasDisponibles, onClose, onSuccess }: DocenteFormProps) {
+  const { user } = useAuthStore();
+  const isSuperAdmin = user?.rol === 'SUPER_ADMIN';
+  const [unidadesList, setUnidadesList] = useState<UnidadAcademica[]>([]);
   const [estatusList, setEstatusList] = useState<EstatusDocente[]>([]);
   const [selectedEstatusId, setSelectedEstatusId] = useState<number>(0);
   const [isSaving, setIsSaving] = useState(false);
@@ -26,6 +32,9 @@ export default function DocenteFormSlideOver({ isOpen, docente, categoriasOption
 
   useEffect(() => {
     if (isOpen) {
+      if (isSuperAdmin) {
+        unidadesService.obtenerTodas().then(setUnidadesList).catch(err => console.error("Error al cargar unidades:", err));
+      }
       const loadEstatus = async () => {
         try {
           const list = await estatusService.obtenerTodos();
@@ -85,6 +94,7 @@ export default function DocenteFormSlideOver({ isOpen, docente, categoriasOption
       // Vinculación unidad principal
       es_unidad_principal: esComodin ? true : formData.get('es_unidad_principal') === 'on',
       horas_obligatorias: esComodin ? undefined : (formData.get('horas_obligatorias') ? Number(formData.get('horas_obligatorias')) : undefined),
+      unidad_academica_id: isSuperAdmin && formData.get('unidad_academica_id') ? Number(formData.get('unidad_academica_id')) : undefined,
     };
 
     try {
@@ -210,6 +220,19 @@ export default function DocenteFormSlideOver({ isOpen, docente, categoriasOption
                 <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3 block border-b border-gray-200 pb-1">
                   Vinculación
                 </label>
+                {isSuperAdmin && (
+                  <div className="mb-4">
+                    <FlatSelect
+                      name="unidad_academica_id"
+                      label="Unidad Académica Principal"
+                      defaultValue={docente?.unidades?.find((u: any) => u.es_unidad_principal)?.unidad_academica?.id || ''}
+                      options={[
+                        { value: '', label: '-- Seleccionar Unidad Académica --' },
+                        ...unidadesList.map(u => ({ value: String(u.id), label: `${u.clave} - ${u.nombre}` }))
+                      ]}
+                    />
+                  </div>
+                )}
                 <div className="flex items-center gap-4 mb-4">
                   <label className="relative inline-flex items-center cursor-pointer">
                     <input 

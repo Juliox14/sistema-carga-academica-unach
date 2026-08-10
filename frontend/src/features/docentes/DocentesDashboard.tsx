@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Plus, Pencil, Trash2, Search, Loader2, AlertCircle, FileSpreadsheet } from 'lucide-react';
+import { Plus, Pencil, Trash2, Search, Loader2, AlertCircle, FileSpreadsheet, Send } from 'lucide-react';
 import { ConfirmAlert } from '../../components/ui/ConfirmAlert';
 import { ImportModal } from '../../components/ui/ImportModal';
 
@@ -12,6 +12,7 @@ import { categoriasService } from '../../services/categorias.service';
 import { areasService } from '../../services/areas.service';
 
 import DocenteFormSlideOver from './components/DocentesFormSlideOver';
+import ModalEnviarInvitacion from './components/ModalEnviarInvitacion';
 
 import { useAuthStore } from '../auth/store/useAuthStore';
 
@@ -29,6 +30,7 @@ export default function DocentesDashboard({ userRole = 'SECRETARIA_ACADEMICA' })
 
   const [isSlideOverOpen, setIsSlideOverOpen] = useState(false);
   const [editingDocente, setEditingDocente] = useState<Docente | null>(null);
+  const [invitatingDocente, setInvitatingDocente] = useState<Docente | null>(null);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
 
   const [deleteAlertOpen, setDeleteAlertOpen] = useState(false);
@@ -334,10 +336,15 @@ export default function DocentesDashboard({ userRole = 'SECRETARIA_ACADEMICA' })
                   </td>
                   
                   <td className="py-3 px-4 text-right opacity-0 group-hover:opacity-100 transition-opacity">
-                    <button onClick={() => openForm(doc)} className="text-gray-400 hover:text-[#002d55] mx-2 cursor-pointer" title="Editar">
+                    {!doc.es_comodin && isSecretaria && (
+                      <button onClick={() => setInvitatingDocente(doc)} className="text-gray-400 hover:text-blue-600 mx-1.5 cursor-pointer" title="Invitar a otra unidad">
+                        <Send size={16} />
+                      </button>
+                    )}
+                    <button onClick={() => openForm(doc)} className="text-gray-400 hover:text-[#002d55] mx-1.5 cursor-pointer" title="Editar">
                       <Pencil size={18} />
                     </button>
-                    <button onClick={() => requestDelete(doc.id)} className="text-gray-400 hover:text-red-500 cursor-pointer" title="Eliminar">
+                    <button onClick={() => requestDelete(doc.id)} className="text-gray-400 hover:text-red-500 ml-1.5 cursor-pointer" title="Eliminar">
                       <Trash2 size={18} />
                     </button>
                   </td>
@@ -355,6 +362,13 @@ export default function DocentesDashboard({ userRole = 'SECRETARIA_ACADEMICA' })
         areasDisponibles={areas}
         onClose={closeForm} 
         onSuccess={cargarDatos} 
+      />
+
+      <ModalEnviarInvitacion
+        isOpen={!!invitatingDocente}
+        docente={invitatingDocente}
+        onClose={() => setInvitatingDocente(null)}
+        onSuccess={cargarDatos}
       />
 
       <ConfirmAlert

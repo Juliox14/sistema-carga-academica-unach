@@ -39,7 +39,7 @@ def crear_docente(
     db: Session = Depends(get_db),
     current_user: Usuario = Depends(get_current_user)
 ):
-    unidad_id = _unidad_filtro(current_user)
+    unidad_id = docente.unidad_academica_id if (docente.unidad_academica_id and current_user.rol and current_user.rol.clave == "SUPER_ADMIN") else _unidad_filtro(current_user)
     return docentes_service.crear_docente(db, docente, unidad_id=unidad_id)
 
 @router.get("/", response_model=List[DocenteResponse])

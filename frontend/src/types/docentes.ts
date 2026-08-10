@@ -14,6 +14,8 @@ export interface Docente {
   telefono?: string;
   turno: 'MATUTINO' | 'VESPERTINO' | 'MIXTO';
   es_comodin?: boolean;
+  unidad_academica_id?: number;
+  unidades?: any[];
   areas_conocimiento?: AreaConocimiento[];
   areas_conocimiento_ids?: number[];
   // Campos PAD

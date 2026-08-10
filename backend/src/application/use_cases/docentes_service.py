@@ -3,8 +3,11 @@ from src.infrastructure.database.orm_models import Docente, AreaConocimiento, Es
 from src.infrastructure.api.schemas.docentes_schema import DocenteCreate, DocenteUpdate
 
 def crear_docente(db: Session, docente_data: DocenteCreate, unidad_id: int | None = None):
+    if not unidad_id and docente_data.unidad_academica_id:
+        unidad_id = docente_data.unidad_academica_id
+
     # 1. Separamos los IDs de las áreas del resto de los datos
-    datos_dict = docente_data.model_dump(exclude={"areas_conocimiento_ids", "horas_obligatorias", "es_unidad_principal"})
+    datos_dict = docente_data.model_dump(exclude={"areas_conocimiento_ids", "horas_obligatorias", "es_unidad_principal", "unidad_academica_id"})
     areas_ids = docente_data.areas_conocimiento_ids
     horas_obligatorias = docente_data.horas_obligatorias
     es_unidad_principal = docente_data.es_unidad_principal
