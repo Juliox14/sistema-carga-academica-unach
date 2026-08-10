@@ -15,6 +15,7 @@ import CategoriasDashboard from './features/categorias/CategoriasDashboard';
 import CiclosDashboard from './features/ciclos/CiclosDashboard';
 import ConfiguracionDashboard from './features/configuracion/ConfiguracionDashboard';
 import DocentesDashboard from './features/docentes/DocentesDashboard';
+import InvitacionesDashboard from './features/docentes/InvitacionesDashboard';
 import MateriasDashboard from './features/materias/MateriasDashboard';
 import ProgramasDashboard from './features/programas/ProgramasDashboard';
 import PlanesDashboard from './features/planesEstudio/PlanesDashboard';
@@ -34,6 +35,7 @@ import HorariosReport from './features/reportes/HorariosReport';
 import MisPreferencias from './features/docentes/components/MisPreferencias';
 import MiPerfilDashboard from './features/docentes/MiPerfilDashboard';
 import HorariosDashboard from './features/horarios/HorariosDashboard';
+import DocenteHorarioDashboard from './features/horarios/DocenteHorarioDashboard';
 
 // Import InicioDashboard
 import InicioDashboard from './features/home/InicioDashboard';
@@ -74,12 +76,12 @@ const router = createBrowserRouter([
             element: <ProtectedRoute allowedRoles={['SUPER_ADMIN', 'SECRETARIA_ACADEMICA']} />,
             children: [
               {
-                path: 'configuracion',
-                element: <ConfiguracionDashboard />,
-              },
-              {
                 path: 'docentes',
                 element: <DocentesDashboard userRole="SECRETARIA_ACADEMICA" />,
+              },
+              {
+                path: 'invitaciones',
+                element: <InvitacionesDashboard />,
               },
             ],
           },
@@ -87,6 +89,10 @@ const router = createBrowserRouter([
           {
             element: <ProtectedRoute allowedRoles={['SECRETARIA_ACADEMICA']} />,
             children: [
+              {
+                path: 'configuracion',
+                element: <ConfiguracionDashboard />,
+              },
               {
                 path: 'aperturas',
                 element: <AperturaDashboard />,
@@ -128,6 +134,10 @@ const router = createBrowserRouter([
               {
                 path: 'mi-perfil',
                 element: <MiPerfilDashboard />,
+              },
+              {
+                path: 'docente/horario',
+                element: <DocenteHorarioDashboard />,
               },
             ],
           },
