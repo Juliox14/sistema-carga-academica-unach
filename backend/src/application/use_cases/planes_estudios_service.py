@@ -2,7 +2,7 @@ from sqlalchemy.orm import Session
 
 import openpyxl as xl
 from io import BytesIO
-from src.infrastructure.database.orm_models import PlanEstudios
+from src.infrastructure.database.orm_models import PlanEstudios, ProgramaEducativo
 from src.infrastructure.api.schemas.planes_estudios_schema import PlanEstudiosCreate, PlanEstudiosUpdate
 
 def crear_nuevo_plan_estudios(db: Session, plan_data: PlanEstudiosCreate):
@@ -17,8 +17,13 @@ def crear_nuevo_plan_estudios(db: Session, plan_data: PlanEstudiosCreate):
     
     return nuevo_plan
 
-def obtener_todos_los_planes_estudios(db: Session):
-    return db.query(PlanEstudios).all()
+def obtener_todos_los_planes_estudios(db: Session, unidad_id: int | None = None):
+    q = db.query(PlanEstudios)
+    if unidad_id is not None:
+        q = q.join(ProgramaEducativo, PlanEstudios.programa_educativo_id == ProgramaEducativo.id).filter(
+            ProgramaEducativo.unidad_academica_id == unidad_id
+        )
+    return q.all()
 
 def obtener_plan_estudios_por_id(db: Session, plan_id: int):
     return db.query(PlanEstudios).filter(PlanEstudios.id == plan_id).first()

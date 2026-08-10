@@ -10,7 +10,16 @@ from ..schemas.planes_estudios_schema import PlanEstudiosCreate, PlanEstudiosRes
 from src.application.use_cases import planes_estudios_service
 from src.infrastructure.api.routers.logging_utils import get_logger, get_trace_id
 
+from src.infrastructure.security import get_current_user
+from src.infrastructure.database.orm_models import Usuario
+
 router = APIRouter(prefix="/api/planes-estudios", tags=["Planes de Estudios"])
+
+def _unidad_filtro(current_user: Usuario) -> int | None:
+    if current_user.rol and current_user.rol.clave == "SUPER_ADMIN":
+        return None
+    return current_user.unidad_academica_id
+
 @router.post("/", response_model=PlanEstudiosResponse)
 def crear_plan_estudios(plan: PlanEstudiosCreate, request: Request, db: Session = Depends(get_db), logger: LoggerPort = Depends(get_logger)):
     trace_id = get_trace_id(request)
@@ -24,10 +33,16 @@ def crear_plan_estudios(plan: PlanEstudiosCreate, request: Request, db: Session 
         raise HTTPException(status_code=400, detail=str(e))
 
 @router.get("/", response_model=List[PlanEstudiosResponse])
-def listar_planes_estudios(request: Request, db: Session = Depends(get_db), logger: LoggerPort = Depends(get_logger)):
+def listar_planes_estudios(
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(get_current_user),
+    logger: LoggerPort = Depends(get_logger)
+):
     trace_id = get_trace_id(request)
-    logger.info("Listando planes de estudios", trace_id=trace_id)
-    return planes_estudios_service.obtener_todos_los_planes_estudios(db)
+    unidad_id = _unidad_filtro(current_user)
+    logger.info("Listando planes de estudios", context={"unidad_id": unidad_id}, trace_id=trace_id)
+    return planes_estudios_service.obtener_todos_los_planes_estudios(db, unidad_id=unidad_id)
 
 @router.post("/import")
 async def importar_plan_estudios(file: UploadFile, request: Request, db: Session = Depends(get_db), logger: LoggerPort = Depends(get_logger)):

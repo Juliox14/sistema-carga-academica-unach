@@ -11,7 +11,15 @@ from src.infrastructure.api.schemas.materias_schema import MateriaCreate, Materi
 from src.infrastructure.api.routers.logging_utils import get_logger, get_trace_id
 from ...database.database import get_db
 
+from src.infrastructure.security import get_current_user
+from src.infrastructure.database.orm_models import Usuario
+
 router = APIRouter(prefix="/api/materias", tags=["Materias"])
+
+def _unidad_filtro(current_user: Usuario) -> int | None:
+    if current_user.rol and current_user.rol.clave == "SUPER_ADMIN":
+        return None
+    return current_user.unidad_academica_id
 
 
 @router.post("/", response_model=MateriaResponse)
@@ -28,10 +36,16 @@ def crear_materia(materia: MateriaCreate, request: Request, db: Session = Depend
 
 
 @router.get("/", response_model=List[MateriaResponse])
-def listar_materias(request: Request, db: Session = Depends(get_db), logger: LoggerPort = Depends(get_logger)):
+def listar_materias(
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(get_current_user),
+    logger: LoggerPort = Depends(get_logger)
+):
     trace_id = get_trace_id(request)
-    logger.info("Listando materias", trace_id=trace_id)
-    return materias_service.obtener_todas_las_materias(db)
+    unidad_id = _unidad_filtro(current_user)
+    logger.info("Listando materias", context={"unidad_id": unidad_id}, trace_id=trace_id)
+    return materias_service.obtener_todas_las_materias(db, unidad_id=unidad_id)
 
 
 @router.post("/import")

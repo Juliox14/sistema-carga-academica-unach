@@ -28,8 +28,15 @@ def crear_nueva_materia(db: Session, materia_data: MateriaCreate):
     return nueva_materia
 
 
-def obtener_todas_las_materias(db: Session):
-    return db.query(Materia).all()
+from src.infrastructure.database.orm_models import Materia, PlanEstudios, ProgramaEducativo
+
+def obtener_todas_las_materias(db: Session, unidad_id: int | None = None):
+    q = db.query(Materia)
+    if unidad_id is not None:
+        q = q.join(PlanEstudios, Materia.plan_estudios_id == PlanEstudios.id)\
+             .join(ProgramaEducativo, PlanEstudios.programa_educativo_id == ProgramaEducativo.id)\
+             .filter(ProgramaEducativo.unidad_academica_id == unidad_id)
+    return q.all()
 
 
 def obtener_materia_por_id(db: Session, materia_id: int):
