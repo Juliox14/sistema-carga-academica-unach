@@ -1,5 +1,6 @@
 import api from './api';
 import type { CicloEscolar } from '../types/ciclos';
+export type { CicloEscolar };
 
 export const ciclosService = {
   obtenerTodos: async () => {

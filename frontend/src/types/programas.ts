@@ -4,4 +4,6 @@ export interface ProgramaEducativo {
     nombre: string;
     activo: boolean;
     nivel: string;
+    unidad_academica_id?: number;
+    unidad_academica?: any;
 }

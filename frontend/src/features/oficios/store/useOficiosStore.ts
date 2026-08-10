@@ -92,7 +92,7 @@ export const useOficiosStore = create<OficiosState>((set, get) => ({
   activarPlantilla: async (id) => {
     set({ isLoading: true });
     try {
-      const response = await api.put(`/oficios/plantillas/${id}/activar`);
+      await api.put(`/oficios/plantillas/${id}/activar`);
       await get().fetchPlantillas();
     } catch (error) {
       set({ isLoading: false });

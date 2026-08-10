@@ -2,11 +2,9 @@ import { useEffect, useState } from 'react';
 import { horariosService } from '../../services/horarios.service';
 import type { MiHorarioResponse } from '../../services/horarios.service';
 import { Calendar, Loader2 } from 'lucide-react';
-import { useAuthStore } from '../auth/store/useAuthStore';
 import { toast } from 'react-hot-toast';
 
 export default function DocenteHorarioDashboard() {
-  const { user } = useAuthStore();
   const [loading, setLoading] = useState(true);
   const [horario, setHorario] = useState<MiHorarioResponse | null>(null);
 

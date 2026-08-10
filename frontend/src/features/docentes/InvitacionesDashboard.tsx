@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Send, Inbox, CheckCircle, XCircle, Clock, MessageSquare, Loader2, AlertCircle } from 'lucide-react';
+import { Send, Inbox, CheckCircle, XCircle, Clock, MessageSquare, Loader2 } from 'lucide-react';
 import { invitacionesService, type InvitacionDocente } from '../../services/invitaciones.service';
 
 export default function InvitacionesDashboard() {
